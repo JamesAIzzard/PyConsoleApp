@@ -10,6 +10,8 @@ class ConsoleApp():
         self.name = name
         self.response = None
         self.terminal_width_chars = 60
+        self.error_message = None
+        self.info_message = None
         # Configure text window;
         self._tk_root = tk.Tk()  
         self._tk_root.geometry("500x1000")
