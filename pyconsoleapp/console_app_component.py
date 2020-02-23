@@ -15,5 +15,8 @@ class ConsoleAppComponent():
     def get_screen(self):
         raise NotImplementedError
 
-    def set_static_response(self, signature, response_func_name):
+    def set_option_response(self, signature, response_func_name):
         self._static_responses[signature] = response_func_name
+        
+    def dynamic_response(self, response):
+        pass    

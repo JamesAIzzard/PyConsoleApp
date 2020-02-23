@@ -44,7 +44,5 @@ class ConsoleAppPage():
             response_func = self._get_static_response_function(response)
             response_func()      
         else:
-            self.dynamic_response(response)
-
-    def dynamic_response(self, response):
-        pass
+            for component in self._components:
+                component.dynamic_response(response)

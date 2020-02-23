@@ -26,8 +26,12 @@ class IngredientMenuComponent(ConsoleAppComponent):
     def on_view(self):
         raise NotImplementedError
     
+    def dynamic_response(self, response):
+        self.app.set_window_text(response)
+        self.app.show_text_window()
+    
 ingredient_menu = IngredientMenuComponent()
-ingredient_menu.set_static_response('1', 'on_create')
-ingredient_menu.set_static_response('2', 'on_edit')
-ingredient_menu.set_static_response('3', 'on_delete')
-ingredient_menu.set_static_response('4', 'on_view')
+ingredient_menu.set_option_response('1', 'on_create')
+ingredient_menu.set_option_response('2', 'on_edit')
+ingredient_menu.set_option_response('3', 'on_delete')
+ingredient_menu.set_option_response('4', 'on_view')
