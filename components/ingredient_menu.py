@@ -14,7 +14,8 @@ class IngredientMenuComponent(ConsoleAppComponent):
         return _MENU_TEMPLATE
 
     def on_create(self):
-        raise NotImplementedError
+        self.app.set_window_text('Some test text.')
+        self.app.show_text_window()
 
     def on_edit(self):
         raise NotImplementedError

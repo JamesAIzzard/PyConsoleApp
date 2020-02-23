@@ -1,13 +1,22 @@
 import os
+import tkinter as tk
+import tkinter.scrolledtext as scrolledtext
 
 class ConsoleApp():
     def __init__(self, name):
         self._routed_pages = []
         self._quit = False
-        self._route = []
+        self._route = []           
         self.name = name
         self.response = None
         self.terminal_width_chars = 60
+        # Configure text window;
+        self._tk_root = tk.Tk()  
+        self._tk_root.geometry("500x1000")
+        self._tk_root.title(name)
+        self._text_window = scrolledtext.ScrolledText(self._tk_root)
+        self._text_window.pack(expand=True, fill='both')
+        self.hide_text_window() 
 
     @property
     def route(self):
@@ -55,3 +64,16 @@ class ConsoleApp():
 
     def quit(self):
         self._quit = True
+        
+    def set_window_text(self, text):
+        self._text_window.configure(state='normal')
+        self._text_window.delete('1.0', tk.END)
+        self._text_window.insert(tk.END, text)
+        self._text_window.configure(state='disabled')
+        self._tk_root.update()
+        
+    def show_text_window(self):
+        self._tk_root.deiconify()
+        
+    def hide_text_window(self):
+        self._tk_root.withdraw()        
