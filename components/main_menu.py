@@ -10,13 +10,11 @@ _MENU_TEMPLATE = '''Choose an option:
 
 class MainMenuComponent(ConsoleAppComponent):
 
-    def printer(self):
+    def get_screen(self):
         return _MENU_TEMPLATE
 
     def on_manage_ingredients(self):
-        self.app.navigate(
-            ['home', 'ingredients']
-        )
+        self.app.navigate(['home', 'ingredients'])
 
     def on_manage_recipes(self):
         raise NotImplementedError

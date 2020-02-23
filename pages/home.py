@@ -1,5 +1,5 @@
 from pyconsoleapp.console_app_page import ConsoleAppPage
-from components.header import header
+from pyconsoleapp.components.header import header
 from components.main_menu import main_menu
 
 class Home(ConsoleAppPage):

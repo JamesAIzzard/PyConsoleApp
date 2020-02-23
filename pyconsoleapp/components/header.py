@@ -1,16 +1,16 @@
 from pyconsoleapp.console_app_component import ConsoleAppComponent
 
-
 class HeaderComponent(ConsoleAppComponent):
 
-    def printer(self):
+    def get_screen(self):
         output = '{}:\n'.format(self.app.name)
         output = output+('='*self.app.terminal_width_chars)+'\n'
-        output = output+'(b)ack, (q)uit\n'
         trail = ''
         for stage in self.app.route:
             trail = trail+stage.replace('_', ' ')+'>'
-        output = output+trail+'\n'
+        output = output+trail+'\n'        
+        output = output+('-'*self.app.terminal_width_chars)+'\n'
+        output = output+'(b)ack, (q)uit\n'
         output = output+('='*self.app.terminal_width_chars)+'\n'
         return output
 

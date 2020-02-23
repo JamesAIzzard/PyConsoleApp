@@ -7,7 +7,7 @@ class ConsoleAppPage():
     def __str__(self):
         output = ''
         for component in self._components:
-            output = output+component.printer()
+            output = output+component.get_screen()
         return output
 
     def _check_static_response_uniqueness(self):

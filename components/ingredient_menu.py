@@ -10,7 +10,7 @@ _MENU_TEMPLATE = '''Choose an option:
 
 class IngredientMenuComponent(ConsoleAppComponent):
 
-    def printer(self):
+    def get_screen(self):
         return _MENU_TEMPLATE
 
     def on_create(self):

@@ -10,7 +10,7 @@ class ConsoleAppComponent():
     def get_static_response_func_name(self, static_response):
         return self._static_responses[static_response]
 
-    def printer(self):
+    def get_screen(self):
         raise NotImplementedError
 
     def set_static_response(self, signature, response_func_name):
