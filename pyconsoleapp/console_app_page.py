@@ -1,6 +1,8 @@
+from pyconsoleapp.console_app import ConsoleApp
+
 class ConsoleAppPage():
     def __init__(self):
-        self.app = None
+        self.app:ConsoleApp = None
         self._components = []
         self._check_static_response_uniqueness()
 
