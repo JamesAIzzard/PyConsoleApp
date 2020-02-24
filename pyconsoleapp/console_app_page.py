@@ -27,7 +27,7 @@ class ConsoleAppPage():
         for component in self._components:
             component.app = app
 
-    def add_component(self, component):
+    def use_component(self, component):
         self._components.append(component)
 
     def process_response(self, response):

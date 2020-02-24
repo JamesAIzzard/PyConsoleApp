@@ -38,7 +38,7 @@ class ConsoleAppComponent():
     def add_child(self, child):
         self._child = child
 
-    def add_component(self, component_name):
+    def use_component(self, component_name):
         if not component_name in self._siblings.keys():
             self._siblings[component_name] = self.app.components[component_name]
         return self._siblings[component_name].output
