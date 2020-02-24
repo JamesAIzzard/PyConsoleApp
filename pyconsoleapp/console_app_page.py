@@ -12,15 +12,6 @@ class ConsoleAppPage():
             output = output+component.get_screen()
         return output
 
-    def _check_option_response_uniqueness(self):
-        signatures = []
-        for component in self._components:
-            for signature in component.option_response_signatures:
-                if signature in signatures:
-                    raise KeyError('Duplicated option response.')
-                else:
-                    signatures.append(signature)
-
     def _get_option_response_function(self, response):
         for component in self._components:
             if response in component.option_responses:

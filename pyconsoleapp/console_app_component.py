@@ -12,11 +12,31 @@ class ConsoleAppComponent():
 
     @property
     def option_responses(self):
-        return self._option_responses.keys()
+        # Return option responses for this component
+        # and all child components.
+        pass
+
+    @property
+    def dynamic_responses(self):
+        # Return dynamic responses for this component
+        # and all child components.
+        pass
 
     @property
     def output(self):
         raise NotImplementedError
+
+    def process_response(self, response):
+        option_responses = self.option_responses
+        for option in option_responses.keys():
+            if option == response:
+                option_responses[option]()
+        dynamic_responses = self.dynamic_responses
+        for dynamic_response in dynamic_responses:
+            dynamic_response(response)
+
+    def add_child(self, child):
+        self._child = child
 
     def add_component(self, component_name):
         if not component_name in self._siblings.keys():
@@ -32,7 +52,8 @@ class ConsoleAppComponent():
         return self._child.output
 
     def set_option_response(self, signature, response_func_name):
-        self._option_responses[signature] = response_func_name
+        response_func = getattr(self, response_func_name)
+        self._option_responses[signature] = response_func
         
     def dynamic_response(self, response):
         pass    

@@ -1,10 +1,12 @@
 import os
 import tkinter as tk
 import tkinter.scrolledtext as scrolledtext
+import importlib
 
 class ConsoleApp():
     def __init__(self, name):
         self._routed_components = []
+        self._components = {}
         self._quit = False
         self._route = []           
         self.name = name
@@ -36,16 +38,28 @@ class ConsoleApp():
     def _get_component_for_route(self, req_route):
         for routed_component in self._routed_components:
             route = routed_component['route']
-            component = routed_component['component']
+            component_name = routed_component['component_name']
             if req_route == route:
-                return component        
+                component = self.get_component(component_name)
+                return component   
 
-    def add_route(self, route, component):
+    def register_component(self, name, component):
         component.app = self
-        component.set_component_app_ref(self)
+        self._components[name] = component
+
+    def get_component(self, name):
+        if name in self._components.keys():
+            return self._components[name]
+        else: # Search in the default components.
+            component = importlib.import_module('components.{name}.{name}'\
+                .format(name))
+            self.register_component('name', component)
+            return component
+
+    def add_route(self, route, component_name):
         self._routed_components.append({
             'route': route,
-            'component': component
+            'component_name': component_name
         })
 
     def run(self):

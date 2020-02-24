@@ -10,8 +10,11 @@ _MENU_TEMPLATE = '''Choose an option:
 
 class MainMenuComponent(ConsoleAppComponent):
 
-    def get_screen(self):
-        return _MENU_TEMPLATE
+    @property
+    def output(self):
+        self.parent_component('standard_page')
+        output = _MENU_TEMPLATE
+        return output
 
     def on_manage_ingredients(self):
         self.app.info_message = 'Navigation success :)'

@@ -2,24 +2,14 @@ from pyconsoleapp.console_app_component import ConsoleAppComponent
 
 class HeaderComponent(ConsoleAppComponent):
     
-    def get_screen(self):
-        output = '{}:\n'.format(self.app.name)
-        output = output+('='*self.app.terminal_width_chars)+'\n'
-        trail = ''
-        for stage in self.app.route:
-            trail = trail+stage.replace('_', ' ')+'>'
-        output = output+trail+'\n'        
-        output = output+('-'*self.app.terminal_width_chars)+'\n'
-        output = output+'(b)ack, (q)uit\n'
-        output = output+('='*self.app.terminal_width_chars)+'\n'
-        if self.app.error_message:
-            output = output+'/!\\ Error: {}\n'.format(self.app.error_message)
-            output = output+('-'*self.app.terminal_width_chars)+'\n'
-            self.app.error_message = None
-        if self.app.info_message:
-            output = output+'(i) Info: {}\n'.format(self.app.info_message)
-            output = output+('-'*self.app.terminal_width_chars)+'\n'
-            self.app.info_message = None
+    def output(self):
+        output = ''
+        output = output+self.add_component('title_bar')
+        output = output+self.add_component('double_hr')
+        output = output+self.add_component('nav_trail')
+        output = output+self.add_component('nav_options')
+        output = output+self.add_component('message_bar')
+        output = output+self.add_component('single_hr')
         return output
 
     def on_back(self):
