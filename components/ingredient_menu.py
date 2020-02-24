@@ -10,8 +10,11 @@ _MENU_TEMPLATE = '''Choose an option:
 
 class IngredientMenuComponent(ConsoleAppComponent):
 
-    def get_screen(self):
-        return _MENU_TEMPLATE
+    @property
+    def output(self):
+        self.parent_component = 'standard_page'
+        output = _MENU_TEMPLATE
+        return output
 
     def on_create(self):
         self.app.set_window_text('Some test text.')

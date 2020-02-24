@@ -4,7 +4,7 @@ class ConsoleAppPage():
     def __init__(self):
         self.app:ConsoleApp = None
         self._components = []
-        self._check_static_response_uniqueness()
+        self._check_option_response_uniqueness()
 
     def __str__(self):
         output = ''
@@ -12,23 +12,23 @@ class ConsoleAppPage():
             output = output+component.get_screen()
         return output
 
-    def _check_static_response_uniqueness(self):
+    def _check_option_response_uniqueness(self):
         signatures = []
         for component in self._components:
-            for signature in component.static_response_signatures:
+            for signature in component.option_response_signatures:
                 if signature in signatures:
-                    raise KeyError('Duplicated static response.')
+                    raise KeyError('Duplicated option response.')
                 else:
                     signatures.append(signature)
 
-    def _get_static_response_function(self, response):
+    def _get_option_response_function(self, response):
         for component in self._components:
-            if response in component.static_responses:
-                return getattr(component, component.get_static_response_func_name(response))
+            if response in component.option_responses:
+                return getattr(component, component.get_option_response_func_name(response))
 
-    def _response_is_static(self, response):
+    def _response_is_option(self, response):
         for component in self._components:
-            if response in component.static_responses:
+            if response in component.option_responses:
                 return True
         return False
 
@@ -40,8 +40,8 @@ class ConsoleAppPage():
         self._components.append(component)
 
     def process_response(self, response):
-        if self._response_is_static(response):
-            response_func = self._get_static_response_function(response)
+        if self._response_is_option(response):
+            response_func = self._get_option_response_function(response)
             response_func()      
         else:
             for component in self._components:
