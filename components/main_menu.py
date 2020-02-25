@@ -10,10 +10,9 @@ _MENU_TEMPLATE = '''Choose an option:
 
 class MainMenuComponent(ConsoleAppComponent):
 
-    @property
-    def output(self):
+    def run(self):
         output = _MENU_TEMPLATE
-        output = self.parent_output('standard_page', output)
+        output = self.run_parent('standard_page', output)
         return output
 
     def on_manage_ingredients(self):

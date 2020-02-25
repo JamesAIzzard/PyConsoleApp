@@ -5,12 +5,12 @@ class HeaderComponent(ConsoleAppComponent):
     @property
     def output(self):
         output = ''
-        output = output+self.use_component('title_bar')
-        output = output+self.use_component('double_hr')
-        output = output+self.use_component('nav_options')        
-        output = output+self.use_component('nav_trail')
-        output = output+self.use_component('single_hr')        
-        output = output+self.use_component('message_bar')        
+        output = output+self.insert_component('title_bar')
+        output = output+self.insert_component('double_hr')
+        output = output+self.insert_component('nav_options')        
+        output = output+self.insert_component('nav_trail')
+        output = output+self.insert_component('single_hr')        
+        output = output+self.insert_component('message_bar')        
         return output
 
     def on_back(self):

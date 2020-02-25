@@ -12,9 +12,9 @@ class ConsoleApp():
         self._components = {}
         self._quit = False
         self._route = []
-        self._temp_child_output: str = None        
+        self._temp_child_output: str = None 
+        self.active_components = {}       
         self.name = name
-        self.response = None
         self.terminal_width_chars = 60
         self.error_message = None
         self.info_message = None
@@ -53,11 +53,6 @@ class ConsoleApp():
         self._components[name] = component
         component.name = name
 
-    def reset_family_tree(self):
-        for component in self._components.values():
-            component.children = {}
-            component.parents = {}
-
     def get_component(self, name: str):
         if name in self._components.keys():
             return self._components[name]
@@ -74,12 +69,17 @@ class ConsoleApp():
             'component_name': component_name
         })
 
+    def process_response(self, response):
+        for component in self.active_components.values():
+            component.call_for_option_response(response)
+        for component in self.active_components.values():
+            component.dynamic_response(response)
+
     def run(self):
         while not self._quit:
-            self.reset_family_tree()
             component = self._get_component_for_route(self.route)
             self.clear_console()
-            component.process_response(input(component))
+            self.process_response(input(component.run()))
 
     def navigate(self, req_route):
         self.route = req_route
