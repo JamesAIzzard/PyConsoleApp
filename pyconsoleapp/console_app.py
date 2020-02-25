@@ -40,6 +40,14 @@ class ConsoleApp():
             if route == stored_route:
                 self._route = route
 
+    @property
+    def active_option_signatures(self):
+        signatures = []
+        for component in self.active_components.values():
+            for option in component.option_responses.keys():
+                signatures.append(option)
+        return signatures
+
     def _get_component_for_route(self, req_route):
         for routed_component in self._routed_components:
             route = routed_component['route']
@@ -75,7 +83,7 @@ class ConsoleApp():
         for component in self.active_components.values():
             component.call_for_option_response(response)
         for component in self.active_components.values():
-            component.dynamic_response(response)
+            component.call_for_dynamic_response(response)
 
     def run(self):
         while not self._quit:

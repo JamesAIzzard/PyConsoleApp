@@ -30,6 +30,10 @@ class ConsoleAppComponent():
         if signature in self.option_responses.keys():
             self.option_responses[signature]()
 
+    def call_for_dynamic_response(self, response):
+        if not response in self.app.active_option_signatures:
+            self.dynamic_response(response)
+
     def set_option_response(self, signature, response_func_name):
         response_func = getattr(self, response_func_name)
         self.option_responses[signature] = response_func
