@@ -19,6 +19,8 @@ class ConsoleAppComponent():
         collected_responses.update(self._option_responses)
         for child in self.children.values():
             collected_responses.update(child.option_responses)
+        for parent in self.parents.values():
+            collected_responses.update(parent.option_responses)
         return collected_responses
 
     @property
@@ -26,6 +28,8 @@ class ConsoleAppComponent():
         collected_responses = [self.dynamic_response]
         for child in self.children.values():
             collected_responses.append(child.dynamic_response)
+        for parent in self.parents.values():
+            collected_responses.append(parent.option_responses)            
         return collected_responses
 
     @property
