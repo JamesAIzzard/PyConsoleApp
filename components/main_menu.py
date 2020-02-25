@@ -1,10 +1,10 @@
 from pyconsoleapp.console_app_component import ConsoleAppComponent
 
 _MENU_TEMPLATE = '''Choose an option:
-1 -> Manage ingredients.
-2 -> Manage recipes.
-3 -> Manage user goals.
-4 -> Run optimiser.
+(1) - Manage ingredients.
+(2) - Manage recipes.
+(3) - Manage user goals.
+(4) - Run optimiser.
 '''
 
 
