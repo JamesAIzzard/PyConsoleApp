@@ -1,8 +1,8 @@
 from pyconsoleapp.console_app_component import ConsoleAppComponent
 
 class NavTrail(ConsoleAppComponent):
-    @property
-    def output(self):
+
+    def run(self):
         trail = ''
         for stage in self.app.route:
             trail = trail+stage.replace('_', ' ')+'>'

@@ -2,8 +2,7 @@ from pyconsoleapp.console_app_component import ConsoleAppComponent
 
 class NavOptions(ConsoleAppComponent):
     
-    @property
-    def output(self):
+    def run(self):
         output = '(b)ack | (q)uit\n'
         return output
 

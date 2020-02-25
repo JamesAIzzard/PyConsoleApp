@@ -2,8 +2,7 @@ from pyconsoleapp.console_app_component import ConsoleAppComponent
 
 class MessageBar(ConsoleAppComponent):
     
-    @property
-    def output(self):
+    def run(self):
         output = ''
         if self.app.error_message:
             output = output+'/!\\ Error: {}\n'.format(self.app.error_message)

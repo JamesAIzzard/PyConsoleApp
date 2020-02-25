@@ -2,8 +2,7 @@ from pyconsoleapp.console_app_component import ConsoleAppComponent
 
 class HeaderComponent(ConsoleAppComponent):
     
-    @property
-    def output(self):
+    def run(self):
         output = ''
         output = output+self.insert_component('title_bar')
         output = output+self.insert_component('double_hr')

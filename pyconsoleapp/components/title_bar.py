@@ -2,8 +2,7 @@ from pyconsoleapp.console_app_component import ConsoleAppComponent
 
 class TitleBar(ConsoleAppComponent):
 
-    @property
-    def output(self):
+    def run(self):
         output = self.app.name+'\n'
         return output
 

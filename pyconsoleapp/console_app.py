@@ -55,12 +55,14 @@ class ConsoleApp():
 
     def get_component(self, name: str):
         if name in self._components.keys():
+            self.active_components[name] = self._components[name]
             return self._components[name]
         else:  # Search in the default components.
             component_module = importlib.import_module('pyconsoleapp.components.{name}'
                                                        .format(name=name))
             component = getattr(component_module, name)
-            self.register_component('name', component)
+            self.active_components[name] = component
+            self.register_component(name, component)
             return component
 
     def add_route(self, route, component_name):
@@ -77,6 +79,7 @@ class ConsoleApp():
 
     def run(self):
         while not self._quit:
+            self.active_components = {}
             component = self._get_component_for_route(self.route)
             self.clear_console()
             self.process_response(input(component.run()))

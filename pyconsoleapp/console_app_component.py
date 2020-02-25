@@ -9,23 +9,22 @@ class ConsoleAppComponent():
         self.name: str = None
 
     def run(self):
-        raise NotImplementedError('Output not implemented on {}'
+        raise NotImplementedError('Run not implemented on {}'
                                   .format(self.__class__))
 
     def run_parent(self, parent_name: str, child_output: str) -> str:
         parent = self.app.get_component(parent_name)
         self.app.active_components[parent_name] = parent
         self.app._temp_child_output = child_output
-        return parent.output
+        return parent.run()
 
     def child_output(self):
         return self.app._temp_child_output
 
     def insert_component(self, component_name):
         component = self.app.get_component(component_name)
-        if not component_name in self.children.keys():
-            self.children[component_name] = component
-        return component.output
+        self.app.active_components[component_name] = component
+        return component.run()
 
     def call_for_option_response(self, signature):
         if signature in self.option_responses.keys():

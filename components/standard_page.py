@@ -2,7 +2,6 @@ from pyconsoleapp.console_app_component import ConsoleAppComponent
 
 class StandardPage(ConsoleAppComponent):
 
-    @property
     def run(self):
         output = ''
         output = output+self.insert_component('header')
