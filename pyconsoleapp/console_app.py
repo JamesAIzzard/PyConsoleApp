@@ -12,19 +12,16 @@ class ConsoleApp():
         self._components = {}
         self._quit = False
         self._route = []
-        self._temp_child_output: str = None 
-        self.active_components = {}       
+        self._temp_child_output: str = None
+        self.active_components = {}
         self.name = name
         self.terminal_width_chars = 60
         self.error_message = None
         self.info_message = None
-        # Configure text window;
-        self._tk_root = tk.Tk()
-        self._tk_root.geometry("500x1000")
-        self._tk_root.title(name)
-        self._text_window = scrolledtext.ScrolledText(self._tk_root)
-        self._text_window.pack(expand=True, fill='both')
-        self.hide_text_window()
+        self._text_window: tk.Tk = None
+        self._config_text_window()
+        self._text_window.protocol(
+            "WM_DELETE_WINDOW", self._on_text_window_close)
 
     @property
     def route(self):
@@ -42,11 +39,25 @@ class ConsoleApp():
 
     @property
     def active_option_signatures(self):
-        signatures = []
+        signatures = set()
         for component in self.active_components.values():
             for option in component.option_responses.keys():
-                signatures.append(option)
+                signatures.add(option)
         return signatures
+
+    def _config_text_window(self) -> None:
+        '''Configures Tkinter text window.
+        '''
+        self._text_window = tk.Tk()
+        self._text_window.geometry("500x1000")
+        self._text_window.title(self.name)
+        self._textbox = scrolledtext.ScrolledText(self._text_window)
+        self._textbox.pack(expand=True, fill='both')
+        self.hide_text_window()
+
+    def _on_text_window_close(self) -> None:
+        self._text_window.destroy()
+        self._text_window = None
 
     def _get_component_for_route(self, req_route):
         for routed_component in self._routed_components:
@@ -106,14 +117,19 @@ class ConsoleApp():
         self._quit = True
 
     def set_window_text(self, text):
-        self._text_window.configure(state='normal')
-        self._text_window.delete('1.0', tk.END)
-        self._text_window.insert(tk.END, text)
-        self._text_window.configure(state='disabled')
-        self._tk_root.update()
+        if not self._text_window:
+            self._config_text_window()
+        self._textbox.configure(state='normal')
+        self._textbox.delete('1.0', tk.END)
+        self._textbox.insert(tk.END, text)
+        self._textbox.configure(state='disabled')
+        self._textbox.update()
 
     def show_text_window(self):
-        self._tk_root.deiconify()
+        if not self._text_window:
+            self._config_text_window()
+        self._text_window.deiconify()
 
     def hide_text_window(self):
-        self._tk_root.withdraw()
+        if self._text_window:
+            self._text_window.withdraw()
