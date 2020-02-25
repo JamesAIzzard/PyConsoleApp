@@ -12,8 +12,8 @@ class MainMenuComponent(ConsoleAppComponent):
 
     @property
     def output(self):
-        self.parent_component('standard_page')
         output = _MENU_TEMPLATE
+        output = self.parent_output('standard_page', output)
         return output
 
     def on_manage_ingredients(self):

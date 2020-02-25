@@ -9,3 +9,5 @@ class StandardPage(ConsoleAppComponent):
         output = output+self.child_output()
         output = output+self.use_component('double_hr')
         return output
+
+standard_page = StandardPage()
