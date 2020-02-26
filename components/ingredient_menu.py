@@ -18,6 +18,7 @@ class IngredientMenuComponent(ConsoleAppComponent):
     def on_create(self):
         self.app.set_window_text('Some test text.')
         self.app.show_text_window()
+        self.app.navigate(['home', 'ingredients', 'new'])
 
     def on_edit(self):
         raise NotImplementedError

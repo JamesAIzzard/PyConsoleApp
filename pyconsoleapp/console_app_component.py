@@ -1,6 +1,6 @@
 from pyconsoleapp.console_app import ConsoleApp
 from typing import Dict
-
+from typing import NewType
 
 class ConsoleAppComponent():
     def __init__(self):
@@ -20,6 +20,10 @@ class ConsoleAppComponent():
 
     def child_output(self):
         return self.app._temp_child_output
+
+    def configure_component(self, configs: dict) -> None:
+        for config_key in configs.keys():
+            setattr(self, config_key, configs[config_key]) 
 
     def insert_component(self, component_name):
         component = self.app.get_component(component_name)
