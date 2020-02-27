@@ -7,22 +7,16 @@ if TYPE_CHECKING:
     from console_app_component import ConsoleAppComponent
 
 
-class RoutedComponent():
-    def __init__(self, route: [str], component: 'ConsoleAppComponent'):
-        self.route = route
-        self.component = component
-
-
 class ConsoleApp():
     def __init__(self, name):
-        self._routed_components: [RoutedComponent] = []
+        self._response: str = None
+        self._route: [str] = []        
+        self._route_component_maps: Dict[str, str] = {}
+        self._route_exit_guard_maps: Dict[str, str] = {}
+        self._route_entrance_guard_maps: Dict[str, str] = {}
         self._components = {}
         self._quit = False
-        self._route = []
         self._temp_child_output: str = None
-        self._exit_guards: [RoutedComponent] = []
-        self._entrance_guards: [RoutedComponent] = []
-        self._response: str = None
         self.active_components = {}
         self.name = name
         self.terminal_width_chars = 60
@@ -36,17 +30,23 @@ class ConsoleApp():
             "WM_DELETE_WINDOW", self._on_text_window_close)
 
     @property
-    def route(self):
+    def route(self) -> [str]:
         if self._route == []:
-            return self._routed_components[0].route
+            return self._route_component_maps[0].route
         else:
             return self._route
 
     @route.setter
-    def route(self, route):
-        for routed_component in self._routed_components:
-            stored_route = routed_component.route
-            if route == stored_route:
+    def route(self, route: [str]) -> None:
+        # If the first element is '.';
+        if route[0] == '.':
+            # Route is relative, convert to absolute;
+            route.pop(0)
+            route = self._route+route
+        # Check the route exists;
+        for routed_component in self._route_component_maps:
+            if route == routed_component.route:
+                # Set it, once confirmed exists;
                 self._route = route
 
     @property
@@ -71,38 +71,38 @@ class ConsoleApp():
         self._text_window.destroy()
         self._text_window = None
 
-    def _get_component_for_route(self, req_route: [str]) -> 'ConsoleAppComponent':
-        for routed_component in self._routed_components:
-            route = routed_component.route
-            component_name = routed_component.component
-            if req_route == route:
-                component = self.get_component(component_name)
-                return component
+    def _keyify_route(self, route: [str]) -> str:
+        return route.join(">")
+
+    def _get_component_for_route(self, route: [str]) -> 'ConsoleAppComponent':
+        route_key = self._keyify_route(route)
+        component_name = self._route_component_maps[route_key]
+        return self.get_component(component_name)
 
     def register_component(self, name: str, component: 'ConsoleAppComponent'):
         component.app = self
         self._components[name] = component
         component.name = name
 
-    def get_component(self, name: str)->'ConsoleAppComponent':
+    def configure_component(self, component_name: str, configs: Dict) -> None:
+        component = self.get_component(component_name)
+        component.configure(configs)
+
+    def get_component(self, name: str) -> 'ConsoleAppComponent':
         if name in self._components.keys():
-            self.active_components[name] = self._components[name]
             return self._components[name]
         else:  # Search in the default components.
             component_module = importlib.import_module('pyconsoleapp.components.{name}'
                                                        .format(name=name))
             component = getattr(component_module, name)
-            self.active_components[name] = component
             self.register_component(name, component)
             return component
 
-    def add_route(self, route, component_name):
-        component = self.get_component(component_name)
-        self._routed_components.append(RoutedComponent(route, component))
+    def add_route(self, route: [str], component_name: str) -> None:
+        self._route_component_maps[self._keyify_route(route)] = component_name
 
     def guard_exit(self, route: [str], component_name: str) -> None:
-        component = self.get_component(component_name)
-        self._exit_guards.append(RoutedComponent(route, component))
+        self._route_exit_guard_maps[self._keyify_route(route)] = component_name
 
     def clear_exit(self, route: [str]) -> None:
         for guard in self._exit_guards:
@@ -115,7 +115,7 @@ class ConsoleApp():
         for component in self.active_components.values():
             component.call_for_dynamic_response(response)
 
-    def run(self):
+    def run(self) -> None:
         while not self._quit:
             # If response has been collected;
             if self._response:
@@ -124,25 +124,34 @@ class ConsoleApp():
             # If we are drawing the next view;
             else:
                 self.active_components = {}
-                # Check exit guards;
-                for exit_guard in self._exit_guards:
-                    if not set(exit_guard.route).issubset(set(self.route)):
-                        component = exit_guard.component
-                        self._response = input(component.run())
-                        continue
-                # Check entrance guards;
-                for entrance_guard in self._entrance_guards:
-                    if set(entrance_guard.route).issubset(set(self.route)):
-                        component = entrance_guard.component
-                        self._response = input(component.run())
-                        continue
+                # Check guards;
+                if self._route_entrance_guarded(self.route):
+                    pass
+                elif self._route_exit_guarded(self.route):
+                    pass
                 # Not guarded, so go ahead to route;
-                component = self._get_component_for_route(self.route)
-                self.clear_console()
-                self._response = input(component.run())
+                else:
+                    component = self._get_component_for_route(self.route)
+                    self.clear_console()
+                    self.active_components[component.name] = component
+                    self._response = input(component.run())
 
-    def navigate(self, req_route: [str]) -> None:
-        self.route = req_route
+                # Logic for entrance and exit guards;
+                if _route_is_guarded(self.route):
+                    for exit_guard in self._exit_guards:
+                        if not set(exit_guard.route).issubset(set(self.route)):
+                            component = self.get_component(
+                                exit_guard.component_name)
+                            self.clear_console()
+                            self._response = input(component.run())
+                    for entrance_guard in self._entrance_guards:
+                        if set(entrance_guard.route).issubset(set(self.route)):
+                            component = entrance_guard.component
+                            self.clear_console()
+                            self._response = input(component.run())
+
+    def navigate(self, route: [str]) -> None:
+        self.route = route
 
     def navigate_back(self):
         if len(self.route) > 1:

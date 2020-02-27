@@ -33,7 +33,7 @@ class IngredientEditMenu(ConsoleAppComponent):
             self.app.clear_exit(guard_route)
             self.app.navigate(exit_to_route)
 
-        self.app.configure_component('yes_no_prompt', {
+        self.app.configure_component('yes_no_dialog', {
             'data': {
                 'message': 'Do you want to save the ingredient?'
             },
@@ -42,7 +42,7 @@ class IngredientEditMenu(ConsoleAppComponent):
                 'n': no_dont_save
             }
         })
-        self.app.guard_exit(['home', 'ingredients', 'new'], 'yes_no_prompt')
+        self.app.guard_exit(guard_route, 'yes_no_dialog')
 
 
 ingredient_edit_menu = IngredientEditMenu()
