@@ -13,7 +13,7 @@ app.register_component('standard_page', standard_page)
 app.register_component('ingredient_editor_menu', ingredient_edit_menu)
 app.register_component('ingredient_name_editor', ingredient_name_editor)
 
-app.add_route(['home'], 'main_menu')
+app.add_root_route(['home'], 'main_menu')
 app.add_route(['home', 'ingredients'], 'ingredient_menu')
 app.add_route(['home', 'ingredients', 'new'], 'ingredient_editor_menu')
 app.add_route(['home', 'ingredients', 'new', 'name'], 'ingredient_name_editor')

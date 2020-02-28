@@ -1,18 +1,17 @@
 from pyconsoleapp.console_app import ConsoleApp
-from typing import Dict
-from typing import NewType
+from typing import Optional
 
 class ConsoleAppComponent():
     def __init__(self):
         self.option_responses = {}
-        self.app: ConsoleApp = None
-        self.name: str = None
+        self.app: ConsoleApp
+        self.name: str
 
-    def run(self):
+    def run(self)->Optional[str]:
         raise NotImplementedError('Run not implemented on {}'
                                   .format(self.__class__))
 
-    def run_parent(self, parent_name: str, child_output: str) -> str:
+    def run_parent(self, parent_name: str, child_output: str) -> Optional[str]:
         parent = self.app.get_component(parent_name)
         self.app.active_components[parent_name] = parent
         self.app._temp_child_output = child_output

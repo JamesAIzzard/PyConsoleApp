@@ -2,52 +2,52 @@ import os
 import tkinter as tk
 import tkinter.scrolledtext as scrolledtext
 import importlib
-from typing import Dict, TYPE_CHECKING
+from typing import Dict, List, Any, Optional, TYPE_CHECKING
 if TYPE_CHECKING:
-    from console_app_component import ConsoleAppComponent
+    from pyconsoleapp.console_app_component import ConsoleAppComponent
 
 
 class ConsoleApp():
     def __init__(self, name):
-        self._response: str = None
-        self._route: [str] = []        
+        self.name: str = name        
+        self._response: Optional[str] = None
+        self._root_route: List[str]
+        self._route: List[str] = []
         self._route_component_maps: Dict[str, str] = {}
         self._route_exit_guard_maps: Dict[str, str] = {}
         self._route_entrance_guard_maps: Dict[str, str] = {}
-        self._components = {}
-        self._quit = False
-        self._temp_child_output: str = None
-        self.active_components = {}
-        self.name = name
-        self.terminal_width_chars = 60
-        self.error_message = None
-        self.info_message = None
-        self.data = {}  # For storing any random data in;
-        self.state = {}  # For storing additional app state in;
-        self._text_window: tk.Tk = None
-        self._config_text_window()
-        self._text_window.protocol(
-            "WM_DELETE_WINDOW", self._on_text_window_close)
+        self._components: Dict[str, 'ConsoleAppComponent'] = {}
+        self._active_components:List['ConsoleAppComponent'] = []
+        self._quit: bool = False
+        self._temp_child_output: Optional[str] = None
+        self._text_window: tk.Tk = self._config_text_window()
+        self._textbox:scrolledtext.ScrolledText = self._config_textbox()        
+        self.terminal_width_chars: int = 60
+        self.error_message: Optional[str] = None
+        self.info_message: Optional[str] = None
+        self.data: Dict[str, Any] = {}  # For storing any random data in;
+        self.state: Dict[str, Any] = {}  # For storing additional app state in;
+
+        # Hide the window that will have popped open;
+        self.hide_text_window()
 
     @property
-    def route(self) -> [str]:
+    def route(self) -> List[str]:
         if self._route == []:
-            return self._route_component_maps[0].route
+            return self._root_route
         else:
             return self._route
 
     @route.setter
-    def route(self, route: [str]) -> None:
+    def route(self, route: List[str]) -> None:
         # If the first element is '.';
         if route[0] == '.':
             # Route is relative, convert to absolute;
             route.pop(0)
             route = self._route+route
-        # Check the route exists;
-        for routed_component in self._route_component_maps:
-            if route == routed_component.route:
-                # Set it, once confirmed exists;
-                self._route = route
+        # Set the route;
+        if self._stringify_route(route) in self._route_component_maps.keys():
+            self._route = route
 
     @property
     def active_option_signatures(self):
@@ -57,27 +57,50 @@ class ConsoleApp():
                 signatures.add(option)
         return signatures
 
-    def _config_text_window(self) -> None:
-        '''Configures Tkinter text window.
+    def _config_text_window(self) -> tk.Tk:
+        '''Configures and returns Tkinter text window.
         '''
-        self._text_window = tk.Tk()
-        self._text_window.geometry("500x1000")
-        self._text_window.title(self.name)
-        self._textbox = scrolledtext.ScrolledText(self._text_window)
-        self._textbox.pack(expand=True, fill='both')
-        self.hide_text_window()
+        text_window = tk.Tk()
+        text_window.geometry("500x1000")
+        text_window.title(self.name)
+        return text_window
 
-    def _on_text_window_close(self) -> None:
-        self._text_window.destroy()
-        self._text_window = None
+    def _config_textbox(self)->scrolledtext.ScrolledText:
+        textbox = scrolledtext.ScrolledText(self._text_window)
+        textbox.pack(expand=True, fill='both')
+        return textbox
 
-    def _keyify_route(self, route: [str]) -> str:
-        return route.join(">")
+    def _stringify_route(self, route: List[str]) -> str:
+        s = ">"
+        return s.join(route)
 
-    def _get_component_for_route(self, route: [str]) -> 'ConsoleAppComponent':
-        route_key = self._keyify_route(route)
+    def _listify_route(self, route: str) -> List[str]:
+        return route.split(">")
+
+    def _get_component_for_route(self, route: List[str]) -> 'ConsoleAppComponent':
+        route_key = self._stringify_route(route)
         component_name = self._route_component_maps[route_key]
         return self.get_component(component_name)
+
+    def _check_guards(self, route: List[str]) -> None:
+        # Define helper to use guard;
+        def collect_response(guarded_route_key: str) -> str:
+            component = self.get_component(
+                self._route_exit_guard_maps[guarded_route_key])
+            self.clear_console()
+            return input(component.run())
+        # First check the exit guards;
+        for guarded_route_key in self._route_exit_guard_maps.keys():
+            guarded_route = self._listify_route(guarded_route_key)
+            if not set(guarded_route).issubset(set(self.route)):
+                self._response = collect_response(guarded_route_key)
+                return
+        # Now check the entrance guards;
+        for guarded_route_key in self._route_entrance_guard_maps.keys():
+            guarded_route = self._listify_route(guarded_route_key)
+            if set(guarded_route).issubset(self.route):
+                self._response = collect_response(guarded_route_key)
+                return
 
     def register_component(self, name: str, component: 'ConsoleAppComponent'):
         component.app = self
@@ -98,16 +121,22 @@ class ConsoleApp():
             self.register_component(name, component)
             return component
 
-    def add_route(self, route: [str], component_name: str) -> None:
-        self._route_component_maps[self._keyify_route(route)] = component_name
+    def add_root_route(self, route: List[str], component_name: str) -> None:
+        self._root_route = route
+        self.add_route(route, component_name)
 
-    def guard_exit(self, route: [str], component_name: str) -> None:
-        self._route_exit_guard_maps[self._keyify_route(route)] = component_name
+    def add_route(self, route: List[str], component_name: str) -> None:
+        self._route_component_maps[self._stringify_route(
+            route)] = component_name
 
-    def clear_exit(self, route: [str]) -> None:
-        for guard in self._exit_guards:
-            if guard.route == route:
-                self._exit_guards.remove(guard)
+    def guard_exit(self, route: List[str], component_name: str) -> None:
+        self._route_exit_guard_maps[self._stringify_route(
+            route)] = component_name
+
+    def clear_exit(self, route: List[str]) -> None:
+        route_key = self._stringify_route(route)
+        if route_key in self._route_exit_guard_maps.keys():
+            del self._route_exit_guard_maps[route_key]
 
     def process_response(self, response):
         for component in self.active_components.values():
@@ -125,32 +154,15 @@ class ConsoleApp():
             else:
                 self.active_components = {}
                 # Check guards;
-                if self._route_entrance_guarded(self.route):
-                    pass
-                elif self._route_exit_guarded(self.route):
-                    pass
-                # Not guarded, so go ahead to route;
-                else:
+                self._check_guards(self.route)
+                # If no guards collected a response;
+                if not self._response:
                     component = self._get_component_for_route(self.route)
                     self.clear_console()
                     self.active_components[component.name] = component
                     self._response = input(component.run())
 
-                # Logic for entrance and exit guards;
-                if _route_is_guarded(self.route):
-                    for exit_guard in self._exit_guards:
-                        if not set(exit_guard.route).issubset(set(self.route)):
-                            component = self.get_component(
-                                exit_guard.component_name)
-                            self.clear_console()
-                            self._response = input(component.run())
-                    for entrance_guard in self._entrance_guards:
-                        if set(entrance_guard.route).issubset(set(self.route)):
-                            component = entrance_guard.component
-                            self.clear_console()
-                            self._response = input(component.run())
-
-    def navigate(self, route: [str]) -> None:
+    def navigate(self, route: List[str]) -> None:
         self.route = route
 
     def navigate_back(self):
