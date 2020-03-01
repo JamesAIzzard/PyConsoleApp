@@ -3,6 +3,7 @@ import tkinter as tk
 import tkinter.scrolledtext as scrolledtext
 import importlib
 from typing import Dict, List, Any, Optional, TYPE_CHECKING
+from tkinter import TclError
 if TYPE_CHECKING:
     from pyconsoleapp.console_app_component import ConsoleAppComponent
 
@@ -20,16 +21,16 @@ class ConsoleApp():
         self._active_components: List['ConsoleAppComponent'] = []
         self._quit: bool = False
         self._temp_child_output: Optional[str] = None
-        self._text_window: tk.Tk = self._config_text_window()
-        self._textbox: scrolledtext.ScrolledText = self._config_textbox()
+        self._text_window: Optional[tk.Tk]
+        self._textbox: Optional[scrolledtext.ScrolledText]
         self.terminal_width_chars: int = 60
         self.error_message: Optional[str] = None
         self.info_message: Optional[str] = None
         self.data: Dict[str, Any] = {}  # For storing any random data in;
         self.state: Dict[str, Any] = {}  # For storing additional app state in;
 
-        # Hide the window that will have popped open;
-        self.hide_text_window()
+        # Configure the text window;
+        self._configure_text_window()
 
     @property
     def route(self) -> List[str]:
@@ -49,18 +50,16 @@ class ConsoleApp():
         if self._stringify_route(route) in self._route_component_maps.keys():
             self._route = route
 
-    def _config_text_window(self) -> tk.Tk:
-        '''Configures and returns Tkinter text window.
+    def _configure_text_window(self) -> None:
+        '''Configures the Tkinter text window.
         '''
-        text_window = tk.Tk()
-        text_window.geometry("500x1000")
-        text_window.title(self.name)
-        return text_window
-
-    def _config_textbox(self) -> scrolledtext.ScrolledText:
-        textbox = scrolledtext.ScrolledText(self._text_window)
-        textbox.pack(expand=True, fill='both')
-        return textbox
+        self._text_window = tk.Tk()
+        self._text_window.geometry("500x1000")
+        self._text_window.title(self.name)
+        self._textbox = scrolledtext.ScrolledText(self._text_window)
+        self._textbox.pack(expand=True, fill='both')
+        # Window may have popped up, so hide it;
+        self.hide_text_window()
 
     def _stringify_route(self, route: List[str]) -> str:
         s = ">"
@@ -170,20 +169,27 @@ class ConsoleApp():
     def quit(self):
         self._quit = True
 
-    def set_window_text(self, text):
-        if not self._text_window:
-            self._config_text_window()
-        self._textbox.configure(state='normal')
-        self._textbox.delete('1.0', tk.END)
-        self._textbox.insert(tk.END, text)
-        self._textbox.configure(state='disabled')
-        self._textbox.update()
+    def set_window_text(self, text: str) -> None:
+        try:
+            self._textbox.configure(state='normal')
+            self._textbox.delete('1.0', tk.END)
+            self._textbox.insert(tk.END, text)
+            self._textbox.configure(state='disabled')
+            self._textbox.update()            
+        except TclError:
+            self._configure_text_window()
+            self.set_window_text(text)
 
-    def show_text_window(self):
-        if not self._text_window:
-            self._config_text_window()
-        self._text_window.deiconify()
+    def show_text_window(self)->None:
+        try:
+            self._text_window.deiconify()
+        except TclError:
+            self._configure_text_window()
+            self.show_text_window()
+        
 
-    def hide_text_window(self):
-        if self._text_window:
+    def hide_text_window(self)-> None:
+        try:
             self._text_window.withdraw()
+        except TclError:
+            self.hide_text_window()
