@@ -74,23 +74,23 @@ class ConsoleApp():
         return self.get_component(component_name)
 
     def _check_guards(self, route: List[str]) -> None:
-        # Define helper to use guard;
-        def collect_response(guarded_route_key: str) -> str:
-            component = self.get_component(
-                self._route_exit_guard_maps[guarded_route_key])
-            self.clear_console()
-            return input(self.run_component(component.name))
         # First check the exit guards;
         for guarded_route_key in self._route_exit_guard_maps.keys():
             guarded_route = self._listify_route(guarded_route_key)
             if not set(guarded_route).issubset(set(self.route)):
-                self._response = collect_response(guarded_route_key)
-                return
+                component = self.get_component( \
+                    self._route_exit_guard_maps[guarded_route_key])
+                self.clear_console()
+                self._response = input(self.run_component(component.name))
+            return
         # Now check the entrance guards;
         for guarded_route_key in self._route_entrance_guard_maps.keys():
             guarded_route = self._listify_route(guarded_route_key)
             if set(guarded_route).issubset(self.route):
-                self._response = collect_response(guarded_route_key)
+                component = self.get_component( \
+                    self._route_entrance_guard_maps[guarded_route_key])
+                self.clear_console() 
+                self._response = input(self.run_component(component.name))               
                 return
 
     def register_component(self, name: str, component: 'ConsoleAppComponent'):
@@ -126,9 +126,18 @@ class ConsoleApp():
         self._route_component_maps[self._stringify_route(
             route)] = component_name
 
+    def guard_entrance(self, route: List[str], component_name: str) -> None:
+        self._route_entrance_guard_maps[self._stringify_route(route)] = \
+            component_name
+
     def guard_exit(self, route: List[str], component_name: str) -> None:
-        self._route_exit_guard_maps[self._stringify_route(
-            route)] = component_name
+        self._route_exit_guard_maps[self._stringify_route(route)] = \
+            component_name
+
+    def clear_entrance(self, route: List[str]) -> None:
+        route_key = self._stringify_route(route)
+        if route_key in self._route_entrance_guard_maps.keys():
+            del self._route_entrance_guard_maps[route_key]
 
     def clear_exit(self, route: List[str]) -> None:
         route_key = self._stringify_route(route)
@@ -175,20 +184,19 @@ class ConsoleApp():
             self._textbox.delete('1.0', tk.END)
             self._textbox.insert(tk.END, text)
             self._textbox.configure(state='disabled')
-            self._textbox.update()            
+            self._textbox.update()
         except TclError:
             self._configure_text_window()
             self.set_window_text(text)
 
-    def show_text_window(self)->None:
+    def show_text_window(self) -> None:
         try:
             self._text_window.deiconify()
         except TclError:
             self._configure_text_window()
             self.show_text_window()
-        
 
-    def hide_text_window(self)-> None:
+    def hide_text_window(self) -> None:
         try:
             self._text_window.withdraw()
         except TclError:

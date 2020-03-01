@@ -1,5 +1,5 @@
 from pyconsoleapp.console_app import ConsoleApp
-from typing import Optional
+from typing import Optional, Dict, Any
 
 
 class ConsoleAppComponent():
@@ -8,6 +8,8 @@ class ConsoleAppComponent():
         self.app: ConsoleApp
         self.name: str
         self.responded_already: bool = False
+        self.data: Dict[str, Any] = {} # For storing data in;
+        self.state: Dict[str, Any] = {} # For storing state in;
 
     def run(self) -> Optional[str]:
         raise NotImplementedError('Run not implemented on {}'
