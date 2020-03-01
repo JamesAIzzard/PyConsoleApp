@@ -41,14 +41,17 @@ class ConsoleApp():
 
     @route.setter
     def route(self, route: List[str]) -> None:
-        # If the first element is '.';
-        if route[0] == '.':
-            # Route is relative, convert to absolute;
-            route.pop(0)
-            route = self._route+route
+        route = self._complete_relative_route(route)
         # Set the route;
         if self._stringify_route(route) in self._route_component_maps.keys():
             self._route = route
+
+    def _complete_relative_route(self, route:List[str]) -> List[str]:
+        if route[0] == '.':
+            route.pop(0)
+            return self._route+route
+        else:
+            return route
 
     def _configure_text_window(self) -> None:
         '''Configures the Tkinter text window.
@@ -126,19 +129,23 @@ class ConsoleApp():
             route)] = component_name
 
     def guard_entrance(self, route: List[str], component_name: str) -> None:
+        route = self._complete_relative_route(route)
         self._route_entrance_guard_maps[self._stringify_route(route)] = \
             component_name
 
     def guard_exit(self, route: List[str], component_name: str) -> None:
+        route = self._complete_relative_route(route)
         self._route_exit_guard_maps[self._stringify_route(route)] = \
             component_name
 
     def clear_entrance(self, route: List[str]) -> None:
+        route = self._complete_relative_route(route)
         route_key = self._stringify_route(route)
         if route_key in self._route_entrance_guard_maps.keys():
             del self._route_entrance_guard_maps[route_key]
 
     def clear_exit(self, route: List[str]) -> None:
+        route = self._complete_relative_route(route)
         route_key = self._stringify_route(route)
         if route_key in self._route_exit_guard_maps.keys():
             del self._route_exit_guard_maps[route_key]

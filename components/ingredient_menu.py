@@ -11,7 +11,7 @@ _MENU_TEMPLATE = '''Choose an option:
 class IngredientMenuComponent(ConsoleAppComponent):
 
     def run(self):
-        self.app.guard_entrance(['home', 'ingredients', 'new'], 'ingredient_create_check')
+        self.app.guard_entrance(['.', 'new'], 'ingredient_create_check')
         output = _MENU_TEMPLATE
         output = self.run_parent('standard_page', output)
         return output
@@ -19,7 +19,7 @@ class IngredientMenuComponent(ConsoleAppComponent):
     def on_create(self):
         # self.app.set_window_text('Some test text.')
         # self.app.show_text_window()
-        self.app.navigate(['home', 'ingredients', 'new'])
+        self.app.navigate(['.', 'new'])
 
     def on_edit(self):
         raise NotImplementedError
