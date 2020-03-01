@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 class ConsoleApp():
     def __init__(self, name):
-        self.name: str = name        
+        self.name: str = name
         self._response: Optional[str] = None
         self._root_route: List[str]
         self._route: List[str] = []
@@ -17,11 +17,11 @@ class ConsoleApp():
         self._route_exit_guard_maps: Dict[str, str] = {}
         self._route_entrance_guard_maps: Dict[str, str] = {}
         self._components: Dict[str, 'ConsoleAppComponent'] = {}
-        self._active_components:List['ConsoleAppComponent'] = []
+        self._active_components: List['ConsoleAppComponent'] = []
         self._quit: bool = False
         self._temp_child_output: Optional[str] = None
         self._text_window: tk.Tk = self._config_text_window()
-        self._textbox:scrolledtext.ScrolledText = self._config_textbox()        
+        self._textbox: scrolledtext.ScrolledText = self._config_textbox()
         self.terminal_width_chars: int = 60
         self.error_message: Optional[str] = None
         self.info_message: Optional[str] = None
@@ -49,14 +49,6 @@ class ConsoleApp():
         if self._stringify_route(route) in self._route_component_maps.keys():
             self._route = route
 
-    @property
-    def active_option_signatures(self):
-        signatures = set()
-        for component in self.active_components.values():
-            for option in component.option_responses.keys():
-                signatures.add(option)
-        return signatures
-
     def _config_text_window(self) -> tk.Tk:
         '''Configures and returns Tkinter text window.
         '''
@@ -65,7 +57,7 @@ class ConsoleApp():
         text_window.title(self.name)
         return text_window
 
-    def _config_textbox(self)->scrolledtext.ScrolledText:
+    def _config_textbox(self) -> scrolledtext.ScrolledText:
         textbox = scrolledtext.ScrolledText(self._text_window)
         textbox.pack(expand=True, fill='both')
         return textbox
@@ -88,7 +80,7 @@ class ConsoleApp():
             component = self.get_component(
                 self._route_exit_guard_maps[guarded_route_key])
             self.clear_console()
-            return input(component.run())
+            return input(self.run_component(component.name))
         # First check the exit guards;
         for guarded_route_key in self._route_exit_guard_maps.keys():
             guarded_route = self._listify_route(guarded_route_key)
@@ -121,6 +113,12 @@ class ConsoleApp():
             self.register_component(name, component)
             return component
 
+    def run_component(self, component_name: str) -> Optional[str]:
+        component = self.get_component(component_name)
+        self._active_components.append(component)
+        component.responded_already = False
+        return component.run()
+
     def add_root_route(self, route: List[str], component_name: str) -> None:
         self._root_route = route
         self.add_route(route, component_name)
@@ -139,10 +137,8 @@ class ConsoleApp():
             del self._route_exit_guard_maps[route_key]
 
     def process_response(self, response):
-        for component in self.active_components.values():
-            component.call_for_option_response(response)
-        for component in self.active_components.values():
-            component.call_for_dynamic_response(response)
+        for component in self._active_components:
+            component.process_response(response)
 
     def run(self) -> None:
         while not self._quit:
@@ -152,15 +148,14 @@ class ConsoleApp():
                 self._response = None
             # If we are drawing the next view;
             else:
-                self.active_components = {}
+                self._active_components = []
                 # Check guards;
                 self._check_guards(self.route)
                 # If no guards collected a response;
                 if not self._response:
                     component = self._get_component_for_route(self.route)
                     self.clear_console()
-                    self.active_components[component.name] = component
-                    self._response = input(component.run())
+                    self._response = input(self.run_component(component.name))
 
     def navigate(self, route: List[str]) -> None:
         self.route = route

@@ -16,8 +16,8 @@ class IngredientMenuComponent(ConsoleAppComponent):
         return output
 
     def on_create(self):
-        self.app.set_window_text('Some test text.')
-        self.app.show_text_window()
+        # self.app.set_window_text('Some test text.')
+        # self.app.show_text_window()
         self.app.navigate(['home', 'ingredients', 'new'])
 
     def on_edit(self):
@@ -30,8 +30,9 @@ class IngredientMenuComponent(ConsoleAppComponent):
         raise NotImplementedError
     
     def dynamic_response(self, response):
-        self.app.set_window_text(response)
-        self.app.show_text_window()
+        pass
+        # self.app.set_window_text(response)
+        # self.app.show_text_window()
     
 ingredient_menu = IngredientMenuComponent()
 ingredient_menu.set_option_response('1', 'on_create')

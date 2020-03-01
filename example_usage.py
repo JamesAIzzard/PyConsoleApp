@@ -18,3 +18,4 @@ app.add_route(['home', 'ingredients'], 'ingredient_menu')
 app.add_route(['home', 'ingredients', 'new'], 'ingredient_editor_menu')
 app.add_route(['home', 'ingredients', 'new', 'name'], 'ingredient_name_editor')
 app.run()
+

@@ -22,5 +22,3 @@ class HeaderComponent(ConsoleAppComponent):
 
 
 header = HeaderComponent()
-header.set_option_response('b', 'on_back')
-header.set_option_response('q', 'on_quit')
