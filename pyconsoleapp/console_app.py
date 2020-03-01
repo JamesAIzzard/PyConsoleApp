@@ -115,7 +115,6 @@ class ConsoleApp():
     def run_component(self, component_name: str) -> Optional[str]:
         component = self.get_component(component_name)
         self._active_components.append(component)
-        component.responded_already = False
         return component.run()
 
     def add_root_route(self, route: List[str], component_name: str) -> None:
