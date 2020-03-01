@@ -9,7 +9,7 @@ _TEMPLATE = '''
 class YesNoDialog(ConsoleAppComponent):
 
     def __init__(self):
-        self.data:Dict = {}
+        super().__init__()
 
     def run(self):
         output = _TEMPLATE.format(

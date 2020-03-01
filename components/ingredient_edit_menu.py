@@ -7,8 +7,12 @@ _TEMPLATE = '''Choose an option:
 (4) - Set a micronutrient.
 '''
 
+GUARD_ROUTE = ['home', 'ingredients', 'new']
+
 
 class IngredientEditMenu(ConsoleAppComponent):
+    def __init__(self):
+        super().__init__()
 
     def run(self):
         output = _TEMPLATE
@@ -16,33 +20,8 @@ class IngredientEditMenu(ConsoleAppComponent):
         return output
 
     def on_set_name(self):
-        self.set_save_changes_prompt()
+        self.app.guard_exit(GUARD_ROUTE, 'ingredient_save_check')
         self.app.navigate(['.', 'name'])
-
-    def set_save_changes_prompt(self):
-        guard_route = ['home', 'ingredients', 'new']
-        exit_to_route = ['home', 'ingredients']
-
-        def yes_save():
-            self.app.info_message = 'Ingredient saved.'
-            self.app.clear_exit(guard_route)
-            self.app.navigate(exit_to_route)
-
-        def no_dont_save():
-            self.app.info_message = 'Ingredient not saved.'
-            self.app.clear_exit(guard_route)
-            self.app.navigate(exit_to_route)
-
-        self.app.configure_component('yes_no_dialog', {
-            'data': {
-                'message': 'Do you want to save the ingredient?'
-            },
-            'option_responses': {
-                'y': yes_save,
-                'n': no_dont_save
-            }
-        })
-        self.app.guard_exit(guard_route, 'yes_no_dialog')
 
 
 ingredient_edit_menu = IngredientEditMenu()
