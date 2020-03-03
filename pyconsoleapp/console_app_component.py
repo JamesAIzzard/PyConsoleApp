@@ -1,7 +1,6 @@
 from pyconsoleapp.console_app import ConsoleApp
 from typing import Optional, Dict, Any
 
-
 class ConsoleAppComponent():
     def __init__(self):
         self.option_responses = {}

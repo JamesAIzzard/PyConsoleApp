@@ -1,6 +1,6 @@
 import os
 import tkinter as tk
-import tkinter.scrolledtext as scrolledtext
+from tkinter.scrolledtext import ScrolledText
 import importlib
 from typing import Dict, List, Any, Optional, TYPE_CHECKING
 from tkinter import TclError
@@ -22,7 +22,7 @@ class ConsoleApp():
         self._quit: bool = False
         self._temp_child_output: Optional[str] = None
         self._text_window: Optional[tk.Tk]
-        self._textbox: Optional[scrolledtext.ScrolledText]
+        self._textbox: Optional[ScrolledText]
         self.terminal_width_chars: int = 60
         self.error_message: Optional[str] = None
         self.info_message: Optional[str] = None
@@ -59,7 +59,7 @@ class ConsoleApp():
         self._text_window = tk.Tk()
         self._text_window.geometry("500x1000")
         self._text_window.title(self.name)
-        self._textbox = scrolledtext.ScrolledText(self._text_window)
+        self._textbox = ScrolledText(self._text_window)
         self._textbox.pack(expand=True, fill='both')
         # Window may have popped up, so hide it;
         self.hide_text_window()
