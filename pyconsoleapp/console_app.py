@@ -2,7 +2,7 @@ import os
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
 import importlib
-from typing import Dict, List, Any, Optional, TYPE_CHECKING
+from typing import Callable, Dict, List, Optional, TYPE_CHECKING
 from tkinter import TclError
 if TYPE_CHECKING:
     from pyconsoleapp.console_app_component import ConsoleAppComponent
@@ -17,7 +17,8 @@ class ConsoleApp():
         self._route_component_maps: Dict[str, str] = {}
         self._route_exit_guard_maps: Dict[str, str] = {}
         self._route_entrance_guard_maps: Dict[str, str] = {}
-        self._components: Dict[str, 'ConsoleAppComponent'] = {}
+        self._initialised_components: Dict[str, 'ConsoleAppComponent'] = {}
+        self._pending_constructors: List[Callable] = []
         self._active_components: List['ConsoleAppComponent'] = []
         self._quit: bool = False
         self._temp_child_output: Optional[str] = None
@@ -26,8 +27,6 @@ class ConsoleApp():
         self.terminal_width_chars: int = 60
         self.error_message: Optional[str] = None
         self.info_message: Optional[str] = None
-        self.data: Dict[str, Any] = {}  # For storing any random data in;
-        self.state: Dict[str, Any] = {}  # For storing additional app state in;
 
         # Configure the text window;
         self._configure_text_window()
@@ -46,7 +45,7 @@ class ConsoleApp():
         if self._stringify_route(route) in self._route_component_maps.keys():
             self._route = route
 
-    def _complete_relative_route(self, route:List[str]) -> List[str]:
+    def _complete_relative_route(self, route: List[str]) -> List[str]:
         if route[0] == '.':
             route.pop(0)
             return self._route+route
@@ -81,7 +80,7 @@ class ConsoleApp():
         for guarded_route_key in self._route_exit_guard_maps.keys():
             guarded_route = self._listify_route(guarded_route_key)
             if not set(guarded_route).issubset(set(self.route)):
-                component = self.get_component( \
+                component = self.get_component(
                     self._route_exit_guard_maps[guarded_route_key])
                 self.clear_console()
                 self._response = input(self.run_component(component.name))
@@ -90,30 +89,37 @@ class ConsoleApp():
         for guarded_route_key in self._route_entrance_guard_maps.keys():
             guarded_route = self._listify_route(guarded_route_key)
             if set(guarded_route).issubset(self.route):
-                component = self.get_component( \
+                component = self.get_component(
                     self._route_entrance_guard_maps[guarded_route_key])
-                self.clear_console() 
-                self._response = input(self.run_component(component.name))               
+                self.clear_console()
+                self._response = input(self.run_component(component.name))
                 return
 
-    def register_component(self, name: str, component: 'ConsoleAppComponent'):
-        component.app = self
-        self._components[name] = component
-        component.name = name
+    def _init_pending_components(self) -> None:
+        # Loop through all constructors and instantiate;
+        for constructor in self._pending_constructors:
+            comp_name = constructor.__name__
+            component = constructor()
+            component.app = self
+            self._initialised_components[comp_name] = component
+        # Zero the list;
+        self._pending_constructors = []
 
-    def configure_component(self, component_name: str, configs: Dict) -> None:
-        component = self.get_component(component_name)
-        component.configure(configs)
+    def register_component(self, component_class: Callable):
+        self._pending_constructors.append(component_class)
 
     def get_component(self, name: str) -> 'ConsoleAppComponent':
-        if name in self._components.keys():
-            return self._components[name]
-        else:  # Search in the default components.
+        # First look inside initialised components;
+        if name in self._initialised_components.keys():
+            return self._initialised_components[name]
+        # Then look in the default components;
+        else:
             component_module = importlib.import_module('pyconsoleapp.components.{name}'
                                                        .format(name=name))
-            component = getattr(component_module, name)
-            self.register_component(name, component)
-            return component
+            constructor = getattr(component_module, name)
+            self.register_component(constructor)
+            self._init_pending_components()
+            return self._initialised_components[name]
 
     def run_component(self, component_name: str) -> Optional[str]:
         component = self.get_component(component_name)
@@ -155,6 +161,9 @@ class ConsoleApp():
             component.process_response(response)
 
     def run(self) -> None:
+        # Create the component instances;
+        for component_class in self._pending_constructors:
+            self._init_pending_components()
         while not self._quit:
             # If response has been collected;
             if self._response:

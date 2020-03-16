@@ -13,5 +13,3 @@ class MessageBar(ConsoleAppComponent):
             output = output+('-'*self.app.terminal_width_chars)+'\n'
             self.app.info_message = None
         return output
-
-message_bar = MessageBar()

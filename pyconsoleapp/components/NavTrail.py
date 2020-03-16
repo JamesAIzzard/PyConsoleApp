@@ -7,5 +7,3 @@ class NavTrail(ConsoleAppComponent):
         for stage in self.app.route:
             trail = trail+stage.replace('_', ' ')+'>'
         return trail+'\n'        
-
-nav_trail = NavTrail()

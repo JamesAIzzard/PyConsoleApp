@@ -1,5 +1,5 @@
 from pyconsoleapp.console_app_component import ConsoleAppComponent
-from typing import Dict
+from typing import Optional
 
 _TEMPLATE = '''
 {message}
@@ -10,13 +10,12 @@ class YesNoDialog(ConsoleAppComponent):
 
     def __init__(self):
         super().__init__()
+        self.message:Optional[str] = None
 
     def run(self):
         output = _TEMPLATE.format(
-            message = self.data['message'],
+            message = self.message,
             space = int((self.app.terminal_width_chars-13)/2)*''
         )
-        output = self.run_parent('standard_page', output)
+        output = self.run_parent('StandardPage', output)
         return output
-
-yes_no_dialog = YesNoDialog()

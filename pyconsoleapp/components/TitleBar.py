@@ -5,5 +5,3 @@ class TitleBar(ConsoleAppComponent):
     def run(self):
         output = self.app.name+'\n'
         return output
-
-title_bar = TitleBar()

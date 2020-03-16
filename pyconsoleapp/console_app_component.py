@@ -1,13 +1,14 @@
 from pyconsoleapp.console_app import ConsoleApp
-from typing import Optional, Dict, Any
+from typing import Callable, Optional, Any
 
 class ConsoleAppComponent():
     def __init__(self):
         self.option_responses = {}
         self.app: ConsoleApp
-        self.name: str
-        self.data: Dict[str, Any] = {} # For storing data in;
-        self.state: Dict[str, Any] = {} # For storing state in;
+
+    @property
+    def name(self)->str:
+        return self.__class__.__name__
 
     def run(self) -> Optional[str]:
         raise NotImplementedError('Run not implemented on {}'
@@ -20,11 +21,7 @@ class ConsoleAppComponent():
     def child_output(self):
         return self.app._temp_child_output
 
-    def configure(self, configs: dict) -> None:
-        for config_key in configs.keys():
-            setattr(self, config_key, configs[config_key])
-
-    def insert_component(self, component_name):
+    def insert_component(self, component_name:str)->Optional[str]:
         return self.app.run_component(component_name)
 
     def process_response(self, response:str)->None:
@@ -34,9 +31,8 @@ class ConsoleAppComponent():
         if response in self.option_responses.keys():
             self.option_responses[response]()
 
-    def set_option_response(self, signature, response_func_name):
-        response_func = getattr(self, response_func_name)
-        self.option_responses[signature] = response_func
+    def set_option_response(self, signature:str, func:Callable)->None:
+        self.option_responses[signature] = func
 
-    def dynamic_response(self, response):
+    def dynamic_response(self, response:str)->None:
         pass

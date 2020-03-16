@@ -13,16 +13,14 @@ GUARD_ROUTE = ['home', 'ingredients', 'new']
 class IngredientEditMenu(ConsoleAppComponent):
     def __init__(self):
         super().__init__()
+        self.set_option_response('1', self.on_set_name)
 
     def run(self):
         output = _TEMPLATE
-        output = self.run_parent('standard_page', output)
+        output = self.run_parent('StandardPage', output)
         return output
 
     def on_set_name(self):
-        self.app.guard_exit(GUARD_ROUTE, 'ingredient_save_check')
+        self.app.guard_exit(GUARD_ROUTE, 'IngredientSaveCheck')
         self.app.navigate(['.', 'name'])
 
-
-ingredient_edit_menu = IngredientEditMenu()
-ingredient_edit_menu.set_option_response('1', 'on_set_name')

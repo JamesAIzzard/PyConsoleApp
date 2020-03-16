@@ -8,12 +8,19 @@ _MENU_TEMPLATE = '''Choose an option:
 '''
 
 
-class IngredientMenuComponent(ConsoleAppComponent):
+class IngredientMenu(ConsoleAppComponent):
+
+    def __init__(self):
+        super().__init__()
+        self.set_option_response('1', self.on_create)
+        self.set_option_response('2', self.on_edit)
+        self.set_option_response('3', self.on_delete)
+        self.set_option_response('4', self.on_view)
 
     def run(self):
-        self.app.guard_entrance(['.', 'new'], 'ingredient_create_check')
+        self.app.guard_entrance(['.', 'new'], 'IngredientCreateCheck')
         output = _MENU_TEMPLATE
-        output = self.run_parent('standard_page', output)
+        output = self.run_parent('StandardPage', output)
         return output
 
     def on_create(self):
@@ -34,9 +41,3 @@ class IngredientMenuComponent(ConsoleAppComponent):
         pass
         # self.app.set_window_text(response)
         # self.app.show_text_window()
-    
-ingredient_menu = IngredientMenuComponent()
-ingredient_menu.set_option_response('1', 'on_create')
-ingredient_menu.set_option_response('2', 'on_edit')
-ingredient_menu.set_option_response('3', 'on_delete')
-ingredient_menu.set_option_response('4', 'on_view')
