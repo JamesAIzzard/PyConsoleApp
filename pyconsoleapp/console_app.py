@@ -157,10 +157,18 @@ class ConsoleApp():
             del self._route_exit_guard_maps[route_key]
 
     def process_response(self, response):
+        '''Instructs each component to process the response collected.
+        
+        Args:
+            response (str): The user's response.
+        '''
         for component in self._active_components:
             component.process_response(response)
 
     def run(self) -> None:
+        '''Core method called on every cycle to initiate delegation
+        of response collection and processing.
+        '''
         # Create the component instances;
         for component_class in self._pending_constructors:
             self._init_pending_components()

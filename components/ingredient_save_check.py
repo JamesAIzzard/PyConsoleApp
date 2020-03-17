@@ -1,7 +1,5 @@
+from typing import List
 from pyconsoleapp.components.YesNoDialog import YesNoDialog
-
-GUARD_ROUTE = ['home', 'ingredients', 'new']
-EXIT_TO_ROUTE = ['home', 'ingredients']
 
 class IngredientSaveCheck(YesNoDialog):
 
@@ -9,14 +7,13 @@ class IngredientSaveCheck(YesNoDialog):
         super().__init__()
         self.set_option_response('y', self.on_yes_save)
         self.set_option_response('n', self.on_no_dont_save)
-        self.message = 'Save changes to this ingredient?'
+        self.message:str = 'Save changes to this ingredient?'
+        self.guard_route:List[str] = ['home', 'ingredients', 'new']
 
     def on_yes_save(self):
         self.app.info_message = 'Ingredient saved.'
-        self.app.clear_exit(GUARD_ROUTE)
-        self.app.navigate(EXIT_TO_ROUTE)        
+        self.app.clear_exit(self.guard_route)      
 
     def on_no_dont_save(self):
         self.app.info_message = 'Ingredient not saved.'
-        self.app.clear_exit(GUARD_ROUTE)
-        self.app.navigate(EXIT_TO_ROUTE)        
+        self.app.clear_exit(self.guard_route)      
