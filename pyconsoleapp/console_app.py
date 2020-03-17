@@ -166,12 +166,11 @@ class ConsoleApp():
             component.process_response(response)
 
     def run(self) -> None:
-        '''Core method called on every cycle to initiate delegation
-        of response collection and processing.
+        '''Main run loop for the CLI
         '''
         # Create the component instances;
-        for component_class in self._pending_constructors:
-            self._init_pending_components()
+        self._init_pending_components()
+        # Enter the main loop;
         while not self._quit:
             # If response has been collected;
             if self._response:
