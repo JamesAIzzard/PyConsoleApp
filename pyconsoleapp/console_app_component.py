@@ -1,13 +1,14 @@
 from pyconsoleapp.console_app import ConsoleApp
-from typing import Callable, Optional, Any
+from typing import Callable, Optional, Dict
+
 
 class ConsoleAppComponent():
     def __init__(self):
-        self.option_responses = {}
+        self.option_responses: Dict[str, Callable] = {}
         self.app: ConsoleApp
 
     @property
-    def name(self)->str:
+    def name(self) -> str:
         return self.__class__.__name__
 
     def run(self) -> Optional[str]:
@@ -21,18 +22,11 @@ class ConsoleAppComponent():
     def child_output(self):
         return self.app._temp_child_output
 
-    def insert_component(self, component_name:str)->Optional[str]:
+    def insert_component(self, component_name: str) -> Optional[str]:
         return self.app.run_component(component_name)
 
-    def process_response(self, response:str)->None:
-        # First run the dynamic response;
-        self.dynamic_response(response)
-        # Then run option response if match;
-        if response in self.option_responses.keys():
-            self.option_responses[response]()
-
-    def set_option_response(self, signature:str, func:Callable)->None:
+    def set_option_response(self, signature: str, func: Callable) -> None:
         self.option_responses[signature] = func
 
-    def dynamic_response(self, response:str)->None:
+    def dynamic_response(self, response: str) -> None:
         pass

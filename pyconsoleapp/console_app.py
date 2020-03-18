@@ -45,6 +45,21 @@ class ConsoleApp():
         if self._stringify_route(route) in self._route_component_maps.keys():
             self._route = route
 
+    @property
+    def _active_option_responses(self)->Dict[str, Callable]:
+        '''Returns a dict of all currently active option responses.
+        
+        Returns:
+            Dict[str, Callable]: A dict of all currently active option
+            responses.
+        '''
+        # Collect the option responses map from each active component;
+        option_responses = {}
+        for component in self._active_components:
+            option_responses.update(component.option_responses)
+        # Then return them;
+        return option_responses
+
     def _complete_relative_route(self, route: List[str]) -> List[str]:
         if route[0] == '.':
             route.pop(0)
@@ -76,6 +91,11 @@ class ConsoleApp():
         return self.get_component(component_name)
 
     def _check_guards(self, route: List[str]) -> None:
+        '''Runs and collects response from any applicable guards.
+
+        Args:
+            route (List[str]): The current route.
+        '''
         # First check the exit guards;
         for guarded_route_key in self._route_exit_guard_maps.keys():
             guarded_route = self._listify_route(guarded_route_key)
@@ -157,13 +177,21 @@ class ConsoleApp():
             del self._route_exit_guard_maps[route_key]
 
     def process_response(self, response):
-        '''Instructs each component to process the response collected.
-        
+        '''First runs any matching active option responses. Then runs
+        all active dynamic responses.
+
         Args:
             response (str): The user's response.
         '''
-        for component in self._active_components:
-            component.process_response(response)
+        # Collect the currently active option responses;
+        active_option_responses = self._active_option_responses
+        # If the response matches any static options;
+        if response in active_option_responses.keys():
+            active_option_responses[response]()
+        # If not, run the dynamic responses;
+        else:
+            for component in self._active_components:
+                component.dynamic_response(response)
 
     def run(self) -> None:
         '''Main run loop for the CLI
@@ -188,6 +216,11 @@ class ConsoleApp():
                     self._response = input(self.run_component(component.name))
 
     def navigate(self, route: List[str]) -> None:
+        '''Changes the app's current route to the provided one.
+
+        Args:
+            route (List[str]): The route to change to.
+        '''
         self.route = route
 
     def navigate_back(self):
