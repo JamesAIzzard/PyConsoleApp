@@ -46,9 +46,9 @@ class ConsoleApp():
             self._route = route
 
     @property
-    def _active_option_responses(self)->Dict[str, Callable]:
+    def _active_option_responses(self) -> Dict[str, Callable]:
         '''Returns a dict of all currently active option responses.
-        
+
         Returns:
             Dict[str, Callable]: A dict of all currently active option
             responses.
@@ -145,6 +145,12 @@ class ConsoleApp():
         component = self.get_component(component_name)
         self._active_components.append(component)
         return component.run()
+
+    def reset_component(self, component_name: str) -> None:
+        # Grab the component;
+        comp = self.get_component(component_name)
+        # Call it's reset method;
+        comp.reset()
 
     def add_root_route(self, route: List[str], component_name: str) -> None:
         self._root_route = route

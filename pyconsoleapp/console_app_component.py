@@ -1,8 +1,9 @@
+from abc import abstractmethod, ABC
 from pyconsoleapp.console_app import ConsoleApp
 from typing import Callable, Optional, Dict
 
 
-class ConsoleAppComponent():
+class ConsoleAppComponent(ABC):
     def __init__(self):
         self.option_responses: Dict[str, Callable] = {}
         self.app: ConsoleApp
@@ -11,6 +12,12 @@ class ConsoleAppComponent():
     def name(self) -> str:
         return self.__class__.__name__
 
+    def reset(self) -> None:
+        '''Method to be called to reset custom state.
+        '''
+        pass
+
+    @abstractmethod
     def run(self) -> Optional[str]:
         raise NotImplementedError('Run not implemented on {}'
                                   .format(self.__class__))
