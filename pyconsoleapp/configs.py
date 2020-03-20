@@ -1,0 +1,1 @@
+builtin_component_package = 'pyconsoleapp.builtin_components'

@@ -15,9 +15,9 @@ class IngredientEditMenu(ConsoleAppComponent):
         super().__init__()
         self.set_option_response('1', self.on_set_name)
 
-    def run(self):
+    def print(self):
         output = _TEMPLATE
-        output = self.run_parent('StandardPage', output)
+        output = self.app.get_component('StandardPage').print(output)
         return output
 
     def on_set_name(self):

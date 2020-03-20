@@ -17,15 +17,13 @@ class IngredientMenu(ConsoleAppComponent):
         self.set_option_response('3', self.on_delete)
         self.set_option_response('4', self.on_view)
 
-    def run(self):
-        self.app.guard_entrance(['.', 'new'], 'IngredientCreateCheck')
+    def print(self):
         output = _MENU_TEMPLATE
-        output = self.run_parent('StandardPage', output)
+        output = self.app.get_component('StandardPage').print(output)
         return output
 
     def on_create(self):
-        # self.app.set_window_text('Some test text.')
-        # self.app.show_text_window()
+        self.app.guard_entrance(['.', 'new'], 'IngredientCreateCheck')
         self.app.navigate(['.', 'new'])
 
     def on_edit(self):

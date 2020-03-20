@@ -12,10 +12,10 @@ class YesNoDialog(ConsoleAppComponent):
         super().__init__()
         self.message:Optional[str] = None
 
-    def run(self):
+    def print(self):
         output = _TEMPLATE.format(
             message = self.message,
             space = int((self.app.terminal_width_chars-13)/2)*''
         )
-        output = self.run_parent('StandardPage', output)
+        output = self.app.get_component('StandardPage').print(output)
         return output

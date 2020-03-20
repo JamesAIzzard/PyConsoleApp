@@ -5,9 +5,9 @@ _TEMPLATE = '''Enter ingredient name:
 
 class IngredientNameEditor(ConsoleAppComponent):
 
-    def run(self):
+    def print(self):
         output = _TEMPLATE
-        output = self.run_parent('StandardPage', output)
+        output = self.app.get_component('StandardPage').print(output)
         return output
 
     def dynamic_response(self, response):

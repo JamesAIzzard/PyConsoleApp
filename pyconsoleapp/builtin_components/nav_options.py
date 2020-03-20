@@ -7,7 +7,7 @@ class NavOptions(ConsoleAppComponent):
         self.set_option_response('b', self.on_back)
         self.set_option_response('q', self.on_quit)
 
-    def run(self):
+    def print(self):
         output = '(b)ack | (q)uit\n'
         return output
 

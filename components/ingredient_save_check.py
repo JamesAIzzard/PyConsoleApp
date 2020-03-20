@@ -1,5 +1,5 @@
 from typing import List
-from pyconsoleapp.components.YesNoDialog import YesNoDialog
+from pyconsoleapp.builtin_components.yes_no_dialog import YesNoDialog
 
 class IngredientSaveCheck(YesNoDialog):
 
