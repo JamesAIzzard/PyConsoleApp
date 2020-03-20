@@ -6,6 +6,7 @@ import importlib.util
 from typing import Callable, Dict, List, Optional, TYPE_CHECKING
 from tkinter import TclError
 from pyconsoleapp.utility_service import UtilityService
+from pyconsoleapp.route_data import RouteData
 import pyconsoleapp.configs as configs
 if TYPE_CHECKING:
     from pyconsoleapp.console_app_component import ConsoleAppComponent
@@ -158,6 +159,14 @@ class ConsoleApp():
     def add_route(self, route: List[str], component_name: str) -> None:
         self._route_component_maps[self._stringify_route(
             route)] = component_name
+
+    def route_data(self, route:List[str]) -> RouteData:
+        route_key = self._stringify_route(route)
+        if route_key in self._route_data.keys():
+            return self._route_data[route_key]
+
+    def global_data(self) -> RouteData:
+        pass
 
     def guard_entrance(self, route: List[str], component_name: str) -> None:
         route = self._complete_relative_route(route)

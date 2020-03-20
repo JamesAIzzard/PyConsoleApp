@@ -1,12 +1,12 @@
 from pyconsoleapp.console_app_component import ConsoleAppComponent
 
-_TEMPLATE = '''Enter ingredient name:
+_TEMPLATE = '''Enter ingredient name (currently {}):
 '''
 
 class IngredientNameEditor(ConsoleAppComponent):
 
     def print(self):
-        output = _TEMPLATE
+        output = _TEMPLATE.format(self.app.route_data(['.']).ingredient_name)
         output = self.app.get_component('StandardPage').print(output)
         return output
 

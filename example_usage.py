@@ -2,7 +2,7 @@ from pyconsoleapp.console_app import ConsoleApp
 
 app = ConsoleApp('PyDiet')
 
-app.register_component_package('components')
+app.register_component_package('example_components')
 
 app.add_root_route(['home'], 'MainMenu')
 app.add_route(['home', 'ingredients'], 'IngredientMenu')
