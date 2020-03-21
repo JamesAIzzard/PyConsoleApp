@@ -3,13 +3,14 @@ import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
 import importlib
 import importlib.util
-from typing import Callable, Dict, List, Optional, TYPE_CHECKING
+from typing import Callable, Dict, List, Optional, Any, TYPE_CHECKING
 from tkinter import TclError
 from pyconsoleapp.utility_service import UtilityService
 from pyconsoleapp.routed_database import RoutedDatabase
-import pyconsoleapp.configs as configs
+from pyconsoleapp.configs import configurator
 if TYPE_CHECKING:
     from pyconsoleapp.console_app_component import ConsoleAppComponent
+    from pyconsoleapp.configs import Configurator
 
 
 class ConsoleApp():
@@ -27,9 +28,9 @@ class ConsoleApp():
         self._text_window: Optional[tk.Tk]
         self._textbox: Optional[ScrolledText]
         self._data:'RoutedDatabase' = RoutedDatabase(self)
-        self.name: str = name       
+        self.configs:'Configurator' = configurator      
+        self.name: str = name     
         self.active_components: List[ConsoleAppComponent] = []
-        self.terminal_width_chars: int = 60
         self.error_message: Optional[str] = None
         self.info_message: Optional[str] = None
 
@@ -110,6 +111,9 @@ class ConsoleApp():
             self.clear_console()
             self._response = input(component.print())
 
+    def configure(self, configs:Dict[str, Any]):
+        self.configs.configure(configs)
+
     def complete_relative_route(self, route: List[str]) -> List[str]:
         if route[0] == '.':
             route.pop(0)
@@ -132,7 +136,7 @@ class ConsoleApp():
         # Convert the PascalCase name to snake_case
         snake_name = self._utility_service.pascal_to_snake(name)
         # Then look in the default components;
-        builtins_package = configs.builtin_component_package + '.{}'
+        builtins_package = self.configs.builtin_component_package + '.{}'
         if importlib.util.find_spec(builtins_package.format(snake_name)):
             component_module = importlib.import_module(
                 builtins_package.format(snake_name))

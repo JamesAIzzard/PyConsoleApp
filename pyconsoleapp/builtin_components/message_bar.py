@@ -10,6 +10,6 @@ class MessageBar(ConsoleAppComponent):
             self.app.error_message = None
         if self.app.info_message:
             output = output+'[i] Info: {}\n'.format(self.app.info_message)
-            output = output+('-'*self.app.terminal_width_chars)+'\n'
+            output = output+('-'*self.app.configs.terminal_width_chars)+'\n'
             self.app.info_message = None
         return output
