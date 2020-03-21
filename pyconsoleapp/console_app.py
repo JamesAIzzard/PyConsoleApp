@@ -26,7 +26,7 @@ class ConsoleApp():
         self._quit: bool = False
         self._text_window: Optional[tk.Tk]
         self._textbox: Optional[ScrolledText]
-        self.data:'RoutedDatabase' = RoutedDatabase(self)
+        self._data:'RoutedDatabase' = RoutedDatabase(self)
         self.name: str = name       
         self.active_components: List[ConsoleAppComponent] = []
         self.terminal_width_chars: int = 60
@@ -64,6 +64,11 @@ class ConsoleApp():
         # Set the route;
         if self._utility_service.stringify_route(route) in self._route_component_maps.keys():
             self._route = route
+
+    @property
+    def data(self):
+        self._data.__dict__['_selected_route'] = self.route
+        return self._data
 
     def _configure_text_window(self) -> None:
         '''Configures the Tkinter text window.
