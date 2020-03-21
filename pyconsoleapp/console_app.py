@@ -5,13 +5,13 @@ import importlib
 import importlib.util
 from typing import Callable, Dict, List, Optional, Any, TYPE_CHECKING
 from tkinter import TclError
-from pyconsoleapp.utility_service import UtilityService
-from pyconsoleapp.routed_database import RoutedDatabase
-from pyconsoleapp.configs import configurator
+from .utility_service import UtilityService
+from .configs import configurator
 from pinjector import register
+from pydough import PyDough
 if TYPE_CHECKING:
-    from pyconsoleapp.console_app_component import ConsoleAppComponent
-    from pyconsoleapp.configs import Configurator
+    from .console_app_component import ConsoleAppComponent
+    from .configs import Configurator
 
 
 class ConsoleApp():
@@ -28,7 +28,7 @@ class ConsoleApp():
         self._quit: bool = False
         self._text_window: Optional[tk.Tk]
         self._textbox: Optional[ScrolledText]
-        self._data:'RoutedDatabase' = RoutedDatabase(self)
+        self._data:'PyDough' = PyDough()
         self.configs:'Configurator' = configurator      
         self.name: str = name     
         self.active_components: List[ConsoleAppComponent] = []
@@ -67,11 +67,6 @@ class ConsoleApp():
         # Set the route;
         if self._utility_service.stringify_route(route) in self._route_component_maps.keys():
             self._route = route
-
-    @property
-    def data(self):
-        self._data.__dict__['_selected_route'] = self.route
-        return self._data
 
     def _configure_text_window(self) -> None:
         '''Configures the Tkinter text window.

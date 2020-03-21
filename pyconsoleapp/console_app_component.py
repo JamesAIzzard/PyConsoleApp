@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from pyconsoleapp.console_app import ConsoleApp
+from .console_app import ConsoleApp
 from pinjector import inject
 from typing import Callable, Dict, Any
 
@@ -34,6 +34,15 @@ class ConsoleAppComponent(ABC):
     def print(self, *args, **kwargs) -> str:
         pass
     
+    def create_scope(self, scope_name:str):
+        return self.app._data.create_scope(scope_name)
+
+    def clear_scope(self, scope_name:str):
+        self.app._data.clear_scope(scope_name)
+
+    def get_scope(self, scope_name:str):
+        return self.app._data.get_scope(scope_name)
+
     def set_option_response(self, signature: str, func: Callable) -> None:
         self.option_responses[signature] = func
 

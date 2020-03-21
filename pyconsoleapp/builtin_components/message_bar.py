@@ -1,4 +1,4 @@
-from pyconsoleapp.console_app_component import ConsoleAppComponent
+from ..console_app_component import ConsoleAppComponent
 
 class MessageBar(ConsoleAppComponent):
     
