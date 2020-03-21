@@ -8,6 +8,7 @@ from tkinter import TclError
 from pyconsoleapp.utility_service import UtilityService
 from pyconsoleapp.routed_database import RoutedDatabase
 from pyconsoleapp.configs import configurator
+from pinjector import register
 if TYPE_CHECKING:
     from pyconsoleapp.console_app_component import ConsoleAppComponent
     from pyconsoleapp.configs import Configurator
@@ -33,9 +34,10 @@ class ConsoleApp():
         self.active_components: List[ConsoleAppComponent] = []
         self.error_message: Optional[str] = None
         self.info_message: Optional[str] = None
-
         # Configure the text window;
         self._configure_text_window()
+        # Upload self to injector;
+        register(self, 'app')
 
     @property
     def _active_option_responses(self) -> Dict[str, Callable]:

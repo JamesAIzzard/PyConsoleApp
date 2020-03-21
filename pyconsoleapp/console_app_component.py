@@ -1,12 +1,13 @@
 from abc import abstractmethod, ABC
 from pyconsoleapp.console_app import ConsoleApp
-from typing import Callable, Optional, Dict, Any
+from pinjector import inject
+from typing import Callable, Dict, Any
 
 
 class ConsoleAppComponent(ABC):
     def __init__(self):
         self.option_responses: Dict[str, Callable] = {}
-        self.app: ConsoleApp
+        self.app:'ConsoleApp' = inject('app')
 
     def __getattribute__(self, name: str) -> Any:
         '''Intercepts the print command and adds the component to
