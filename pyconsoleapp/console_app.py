@@ -6,7 +6,7 @@ import importlib.util
 from typing import Callable, Dict, List, Optional, TYPE_CHECKING
 from tkinter import TclError
 from pyconsoleapp.utility_service import UtilityService
-from pyconsoleapp.route_data import RoutedDatabase
+from pyconsoleapp.routed_database import RoutedDatabase
 import pyconsoleapp.configs as configs
 if TYPE_CHECKING:
     from pyconsoleapp.console_app_component import ConsoleAppComponent
@@ -16,7 +16,7 @@ class ConsoleApp():
     def __init__(self, name):
         self._utility_service: UtilityService = UtilityService()
         self._response: Optional[str] = None
-        self._root_route: List[str]
+        self._root_route: List[str] = []
         self._route: List[str] = []
         self._route_component_maps: Dict[str, str] = {}
         self._route_exit_guard_maps: Dict[str, str] = {}
@@ -26,29 +26,15 @@ class ConsoleApp():
         self._quit: bool = False
         self._text_window: Optional[tk.Tk]
         self._textbox: Optional[ScrolledText]
-        self.name: str = name
+        self.data:'RoutedDatabase' = RoutedDatabase(self)
+        self.name: str = name       
         self.active_components: List[ConsoleAppComponent] = []
-        self.data = RoutedDatabase(self)
         self.terminal_width_chars: int = 60
         self.error_message: Optional[str] = None
         self.info_message: Optional[str] = None
 
         # Configure the text window;
         self._configure_text_window()
-
-    @property
-    def route(self) -> List[str]:
-        if self._route == []:
-            return self._root_route
-        else:
-            return self._route
-
-    @route.setter
-    def route(self, route: List[str]) -> None:
-        route = self.complete_relative_route(route)
-        # Set the route;
-        if self._utility_service.stringify_route(route) in self._route_component_maps.keys():
-            self._route = route
 
     @property
     def _active_option_responses(self) -> Dict[str, Callable]:
@@ -64,6 +50,20 @@ class ConsoleApp():
             option_responses.update(component.option_responses)
         # Then return them;
         return option_responses
+
+    @property
+    def route(self) -> List[str]:
+        if self._route == []:
+            return self._root_route
+        else:
+            return self._route
+
+    @route.setter
+    def route(self, route: List[str]) -> None:
+        route = self.complete_relative_route(route)
+        # Set the route;
+        if self._utility_service.stringify_route(route) in self._route_component_maps.keys():
+            self._route = route
 
     def _configure_text_window(self) -> None:
         '''Configures the Tkinter text window.

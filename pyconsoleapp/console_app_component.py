@@ -32,7 +32,7 @@ class ConsoleAppComponent(ABC):
     @abstractmethod
     def print(self, *args, **kwargs) -> str:
         pass
-
+    
     def set_option_response(self, signature: str, func: Callable) -> None:
         self.option_responses[signature] = func
 

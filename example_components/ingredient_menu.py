@@ -24,7 +24,7 @@ class IngredientMenu(ConsoleAppComponent):
 
     def on_create(self):
         # Add some route data;
-        self.app.data.component_name = "Beetroot"
+        self.app.data.ingredient_name = "Beetroot"
         self.app.guard_entrance(['.', 'new'], 'IngredientCreateCheck')
         self.app.navigate(['.', 'new'])
 
