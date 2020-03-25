@@ -14,6 +14,7 @@ app = ConsoleApp('PyDiet')
 # Register the package containing the components;
 app.register_component_package('example.components')
 
+# Map the app routes to their components;
 app.root_route('home', 'MainMenuComponent')
 app.add_route('home.ingredients', 'IngredientMenuComponent')
 app.add_route('home.ingredients.new', 'IngredientEditMenuComponent')
