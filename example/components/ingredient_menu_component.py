@@ -20,6 +20,7 @@ class IngredientMenuComponent(ConsoleAppComponent):
 
     def run(self):
         self.guard_entrance('.new', 'IngredientCreateCheckComponent')
+        scope.update_ingredient_display()
 
     def print(self):
         output = _MENU_TEMPLATE
