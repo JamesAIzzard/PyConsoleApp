@@ -9,5 +9,6 @@ ingredient_name:Optional[str] = None
 app:'ConsoleApp' = inject('cli.app')
 
 def update_ingredient_display():
+    app.text_window_title = 'Example Title'
     app.set_window_text('Updated')
     app.show_text_window()

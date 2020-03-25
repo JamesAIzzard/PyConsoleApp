@@ -74,6 +74,14 @@ class ConsoleApp():
         else:
             raise KeyError('The route {} was not recognised.'.format(route))
 
+    @property
+    def text_window_title(self)->str:
+        return self._text_window.title
+
+    @text_window_title.setter
+    def text_window_title(self, title:str)->None:
+        self._text_window.title(title)
+
     def _configure_text_window(self) -> None:
         '''Configures the Tkinter text window.
         '''
