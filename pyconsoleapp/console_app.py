@@ -1,25 +1,30 @@
 import os
+from os.path import split
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
 import importlib
 import importlib.util
 from typing import Callable, Dict, List, Optional, Any, TYPE_CHECKING
 from tkinter import TclError
-from .utility_service import UtilityService
-from .configs import configurator
-from pinjector import register
-from pydough import PyDough
-if TYPE_CHECKING:
-    from .console_app_component import ConsoleAppComponent
-    from .configs import Configurator
 
+import pinjector
+from pinjector import inject
+
+from pyconsoleapp import utility_service
+from pyconsoleapp import configs
+
+if TYPE_CHECKING:
+    from pyconsoleapp.console_app_component import ConsoleAppComponent
+
+pinjector.create_namespace('cli')
+pinjector.register('cli', utility_service)
 
 class ConsoleApp():
     def __init__(self, name):
-        self._utility_service: UtilityService = UtilityService()
+        self._utility_service: utility_service = inject('cli.utility_service')
         self._response: Optional[str] = None
-        self._root_route: List[str] = []
-        self._route: List[str] = []
+        self._root_route: str = ''
+        self._route: str = ''
         self._route_component_maps: Dict[str, str] = {}
         self._route_exit_guard_maps: Dict[str, str] = {}
         self._route_entrance_guard_maps: Dict[str, str] = {}
@@ -27,17 +32,15 @@ class ConsoleApp():
         self._component_packages: List[str] = []
         self._quit: bool = False
         self._text_window: Optional[tk.Tk]
-        self._textbox: Optional[ScrolledText]
-        self._data:'PyDough' = PyDough()
-        self.configs:'Configurator' = configurator      
+        self._textbox: Optional[ScrolledText]  
         self.name: str = name     
         self.active_components: List[ConsoleAppComponent] = []
         self.error_message: Optional[str] = None
         self.info_message: Optional[str] = None
         # Configure the text window;
         self._configure_text_window()
-        # Upload self to injector;
-        register(self, 'app')
+        # Upload self to DI;
+        pinjector.register('cli', self, 'app')
 
     @property
     def _active_option_responses(self) -> Dict[str, Callable]:
@@ -55,18 +58,21 @@ class ConsoleApp():
         return option_responses
 
     @property
-    def route(self) -> List[str]:
-        if self._route == []:
+    def route(self) -> str:
+        if self._route == '':
             return self._root_route
         else:
             return self._route
 
     @route.setter
-    def route(self, route: List[str]) -> None:
-        route = self.complete_relative_route(route)
-        # Set the route;
-        if self._utility_service.stringify_route(route) in self._route_component_maps.keys():
+    def route(self, route: str) -> None:
+        route = self.interpret_relative_route(route)
+        # If the route was recognised, set it;
+        if route in self._route_component_maps.keys():
             self._route = route
+        # Otherwise, shout;
+        else:
+            raise KeyError('The route {} was not recognised.'.format(route))
 
     def _configure_text_window(self) -> None:
         '''Configures the Tkinter text window.
@@ -79,12 +85,11 @@ class ConsoleApp():
         # Window may have popped up, so hide it;
         self.hide_text_window()
 
-    def _get_component_for_route(self, route: List[str]) -> 'ConsoleAppComponent':
-        route_key = self._utility_service.stringify_route(route)
-        component_name = self._route_component_maps[route_key]
+    def _get_component_for_route(self, route: str) -> 'ConsoleAppComponent':
+        component_name = self._route_component_maps[route]
         return self.get_component(component_name)
 
-    def _check_guards(self, route: List[str]) -> None:
+    def _check_guards(self, route: str) -> None:
         '''Runs and collects response from any applicable guards.
 
         Args:
@@ -93,30 +98,74 @@ class ConsoleApp():
         # Place to put matching guard component (if found);
         component = None
         # First check the exit guards;
-        for guarded_route_key in self._route_exit_guard_maps.keys():
-            guarded_route = self._utility_service.listify_route(guarded_route_key)
-            if not set(guarded_route).issubset(set(self.route)):
+        for guarded_route in self._route_exit_guard_maps.keys():
+            # If the guarded root does not feature in the submitted route;
+            if not guarded_route in route:
+                # The submitted route must have exited, so populate the guard component;
                 component = self.get_component(
-                    self._route_exit_guard_maps[guarded_route_key])
+                    self._route_exit_guard_maps[guarded_route])
+                break
         # Now check the entrance guards;
-        for guarded_route_key in self._route_entrance_guard_maps.keys():
-            guarded_route = self._utility_service.listify_route(guarded_route_key)
-            if set(guarded_route).issubset(self.route):
+        for guarded_route in self._route_entrance_guard_maps.keys():
+            # If the guarded root is part of the submitted route;
+            if guarded_route in route:
+                # Then the submitted route must be beyond the guard, so populate the
+                # guard component;
                 component = self.get_component(
-                    self._route_entrance_guard_maps[guarded_route_key])
+                    self._route_entrance_guard_maps[guarded_route])
+                break
+        # If the guard component was populated, then use it;
         if component:
             self.clear_console()
             self._response = input(component.print())
 
-    def configure(self, configs:Dict[str, Any]):
-        self.configs.configure(configs)
-
-    def complete_relative_route(self, route: List[str]) -> List[str]:
-        if route[0] == '.':
-            route.pop(0)
-            return self._route+route
-        else:
+    def interpret_relative_route(self, route: str) -> str:
+        '''Converts a relative route with point notation
+        preceeding it, to an absolute route from the
+        root route.
+        
+        Arguments:
+            route {str} -- Route, possibly containing relative
+                point notation.
+        
+        Returns:
+            str -- Absolute route.
+        '''
+        # Figure out how many reverses were in the route;
+        back_counter = -1
+        while len(route) and route[0] == '.':
+            # Increment the reverse counter;
+            back_counter = back_counter + 1
+            # Knock the front dot off;
+            route = route[1:]
+        # If it wasn't a relative route at all, just return;
+        if back_counter == -1:
+            # Just return the route unchanged;
             return route
+        # If it was a relative route with no reverses;
+        elif back_counter == 0:
+            # Also if we are appending, put a dot in front of the new part;
+            if route:
+                route = '.' + route            
+            # Return the new route appended to the current one.
+            return self.route + route
+        # We need to take a number of steps back from the
+        # current route;
+        else:
+            # We'll need to trim the current route;
+            # First, get it as a list;
+            base_route_list = self.route.split('.')
+            # Also if we are appending, put a dot in front of the new part;
+            if route:
+                route = '.' + route
+            # If we arent reversing past the start of it;
+            if back_counter < len(base_route_list):
+                # Cut the right amount off, and stick the new route on;
+                return '.'.join(base_route_list[0:-back_counter]) + route
+            # We were reversing past the start, so just return
+            # the root route, with the new bit stuck on;
+            else:
+                return self._root_route + route
 
     def register_component_package(self, package_path: str) -> None:
         self._component_packages.append(package_path)
@@ -133,7 +182,7 @@ class ConsoleApp():
         # Convert the PascalCase name to snake_case
         snake_name = self._utility_service.pascal_to_snake(name)
         # Then look in the default components;
-        builtins_package = self.configs.builtin_component_package + '.{}'
+        builtins_package = configs.builtin_component_package + '.{}'
         if importlib.util.find_spec(builtins_package.format(snake_name)):
             component_module = importlib.import_module(
                 builtins_package.format(snake_name))
@@ -144,6 +193,10 @@ class ConsoleApp():
                 component_module = importlib.import_module('{}.{}'
                                                            .format(package_path, snake_name))
                 constructor = getattr(component_module, name)
+        # Raise an exception if the constructor was not found;
+        if not constructor:
+            raise ModuleNotFoundError('The component module {} was not found.'.\
+                format(snake_name))
         # Instantiate the class and add it to the components dict;
         component: 'ConsoleAppComponent' = constructor()
         self._components[component.name] = component
@@ -152,35 +205,32 @@ class ConsoleApp():
         # Return the finished component;
         return component
 
-    def add_root_route(self, route: List[str], component_name: str) -> None:
+    def root_route(self, route: str, component_name: str) -> None:
         self._root_route = route
         self.add_route(route, component_name)
 
-    def add_route(self, route: List[str], component_name: str) -> None:
-        self._route_component_maps[self._utility_service.stringify_route(
-            route)] = component_name
+    def add_route(self, route: str, component_name: str) -> None:
+        self._route_component_maps[route] = component_name
 
-    def guard_entrance(self, route: List[str], component_name: str) -> None:
-        route = self.complete_relative_route(route)
-        self._route_entrance_guard_maps[self._utility_service.stringify_route(route)] = \
+    def guard_entrance(self, route: str, component_name: str) -> None:
+        route = self.interpret_relative_route(route)
+        self._route_entrance_guard_maps[route] = \
             component_name
 
-    def guard_exit(self, route: List[str], component_name: str) -> None:
-        route = self.complete_relative_route(route)
-        self._route_exit_guard_maps[self._utility_service.stringify_route(route)] = \
+    def guard_exit(self, route: str, component_name: str) -> None:
+        route = self.interpret_relative_route(route)
+        self._route_exit_guard_maps[route] = \
             component_name
 
-    def clear_entrance(self, route: List[str]) -> None:
-        route = self.complete_relative_route(route)
-        route_key = self._utility_service.stringify_route(route)
-        if route_key in self._route_entrance_guard_maps.keys():
-            del self._route_entrance_guard_maps[route_key]
+    def clear_entrance(self, route: str) -> None:
+        route = self.interpret_relative_route(route)
+        if route in self._route_entrance_guard_maps.keys():
+            del self._route_entrance_guard_maps[route]
 
-    def clear_exit(self, route: List[str]) -> None:
-        route = self.complete_relative_route(route)
-        route_key = self._utility_service.stringify_route(route)
-        if route_key in self._route_exit_guard_maps.keys():
-            del self._route_exit_guard_maps[route_key]
+    def clear_exit(self, route: str) -> None:
+        route = self.interpret_relative_route(route)
+        if route in self._route_exit_guard_maps.keys():
+            del self._route_exit_guard_maps[route]
 
     def process_response(self, response):
         '''First runs any matching active option responses. Then runs
@@ -219,17 +269,11 @@ class ConsoleApp():
                     self.clear_console()
                     self._response = input(component.print())
 
-    def navigate(self, route: List[str]) -> None:
-        '''Changes the app's current route to the provided one.
-
-        Args:
-            route (List[str]): The route to change to.
-        '''
+    def goto(self, route:str)->None:
+        # Convert the route to be absolute;
+        route = self.interpret_relative_route(route)
+        # Set the route;
         self.route = route
-
-    def navigate_back(self):
-        if len(self.route) > 1:
-            self.navigate(self.route[0:-1])
 
     def clear_console(self):
         os.system('cls' if os.name == 'nt' else 'clear')

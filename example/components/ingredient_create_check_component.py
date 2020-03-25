@@ -1,6 +1,6 @@
-from pyconsoleapp.builtin_components.yes_no_dialog import YesNoDialog
+from pyconsoleapp.builtin_components.yes_no_dialog_component import YesNoDialogComponent
 
-class IngredientCreateCheck(YesNoDialog):
+class IngredientCreateCheckComponent(YesNoDialogComponent):
 
     def __init__(self):
         super().__init__()
@@ -9,8 +9,8 @@ class IngredientCreateCheck(YesNoDialog):
         self.set_option_response('n', self.on_no_dont_create)
 
     def on_yes_create(self):
-        self.app.navigate(['.', 'new'])
-        self.app.clear_entrance(['home', 'ingredients', 'new'])
+        self.clear_entrance('.')
 
     def on_no_dont_create(self):
-        self.app.navigate_back()
+        # Navigate back;
+        self.goto('..')

@@ -1,6 +1,6 @@
-from ..console_app_component import ConsoleAppComponent
+from pyconsoleapp.console_app_component import ConsoleAppComponent
 
-class NavOptions(ConsoleAppComponent):
+class NavOptionsComponent(ConsoleAppComponent):
     
     def __init__(self):
         super().__init__()
@@ -12,7 +12,7 @@ class NavOptions(ConsoleAppComponent):
         return output
 
     def on_back(self)->None:
-        self.app.navigate_back()
+        self.goto('..')
 
     def on_quit(self)->None:
         self.app.quit()

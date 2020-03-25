@@ -8,7 +8,7 @@ _MENU_TEMPLATE = '''Choose an option:
 '''
 
 
-class MainMenu(ConsoleAppComponent):
+class MainMenuComponent(ConsoleAppComponent):
 
     def __init__(self):
         super().__init__()
@@ -19,12 +19,12 @@ class MainMenu(ConsoleAppComponent):
 
     def print(self):
         output = _MENU_TEMPLATE
-        output = self.app.get_component('StandardPage').print(output)
+        output = self.app.get_component('StandardPageComponent').print(output)
         return output
 
     def on_manage_ingredients(self):
         self.app.info_message = 'Navigation success :)'
-        self.app.navigate(['home', 'ingredients'])
+        self.goto('.ingredients')
 
     def on_manage_recipes(self):
         raise NotImplementedError

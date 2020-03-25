@@ -1,4 +1,5 @@
 from pyconsoleapp.console_app_component import ConsoleAppComponent
+from example import ingredient_edit_scope as scope
 
 _MENU_TEMPLATE = '''Choose an option:
 (1) - Create a new ingredient.
@@ -8,7 +9,7 @@ _MENU_TEMPLATE = '''Choose an option:
 '''
 
 
-class IngredientMenu(ConsoleAppComponent):
+class IngredientMenuComponent(ConsoleAppComponent):
 
     def __init__(self):
         super().__init__()
@@ -17,17 +18,18 @@ class IngredientMenu(ConsoleAppComponent):
         self.set_option_response('3', self.on_delete)
         self.set_option_response('4', self.on_view)
 
+    def run(self):
+        self.guard_entrance('.new', 'IngredientCreateCheckComponent')
+
     def print(self):
         output = _MENU_TEMPLATE
-        output = self.app.get_component('StandardPage').print(output)
+        output = self.app.get_component('StandardPageComponent').print(output)
         return output
 
     def on_create(self):
         # Add some route data;
-        scope = self.create_scope('new_ingredient')
         scope.ingredient_name = "Beetroot"
-        self.app.guard_entrance(['.', 'new'], 'IngredientCreateCheck')
-        self.app.navigate(['.', 'new'])
+        self.goto('.new')
 
     def on_edit(self):
         raise NotImplementedError

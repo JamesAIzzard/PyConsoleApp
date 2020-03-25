@@ -1,4 +1,6 @@
-from ..console_app_component import ConsoleAppComponent
+from pyconsoleapp.console_app_component import ConsoleAppComponent
+from pyconsoleapp import configs
+
 from typing import Optional
 
 _TEMPLATE = '''
@@ -6,7 +8,7 @@ _TEMPLATE = '''
 {space}(y)es / (n)o?{space}
 '''
 
-class YesNoDialog(ConsoleAppComponent):
+class YesNoDialogComponent(ConsoleAppComponent):
 
     def __init__(self):
         super().__init__()
@@ -15,7 +17,7 @@ class YesNoDialog(ConsoleAppComponent):
     def print(self):
         output = _TEMPLATE.format(
             message = self.message,
-            space = int((self.app.configs.terminal_width_chars-13)/2)*''
+            space = int((configs.terminal_width_chars-13)/2)*''
         )
-        output = self.app.get_component('StandardPage').print(output)
+        output = self.app.get_component('StandardPageComponent').print(output)
         return output

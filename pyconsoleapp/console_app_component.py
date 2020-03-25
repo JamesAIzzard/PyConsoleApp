@@ -7,7 +7,7 @@ from typing import Callable, Dict, Any
 class ConsoleAppComponent(ABC):
     def __init__(self):
         self.option_responses: Dict[str, Callable] = {}
-        self.app:'ConsoleApp' = inject('app')
+        self.app:'ConsoleApp' = inject('cli.app')
 
     def __getattribute__(self, name: str) -> Any:
         '''Intercepts the print command and adds the component to
@@ -21,6 +21,8 @@ class ConsoleAppComponent(ABC):
         '''
         # If the print method was called;
         if name == 'print':
+            # Call the on_run method;
+            self.run()
             # Add this component to the active components list;
             self.app.make_component_active(self.name)
         # Return whatever was requested;
@@ -33,18 +35,27 @@ class ConsoleAppComponent(ABC):
     @abstractmethod
     def print(self, *args, **kwargs) -> str:
         pass
-    
-    def create_scope(self, scope_name:str):
-        return self.app._data.create_scope(scope_name)
-
-    def clear_scope(self, scope_name:str):
-        self.app._data.clear_scope(scope_name)
-
-    def get_scope(self, scope_name:str):
-        return self.app._data.get_scope(scope_name)
 
     def set_option_response(self, signature: str, func: Callable) -> None:
         self.option_responses[signature] = func
 
     def dynamic_response(self, response: str) -> None:
         pass
+
+    def run(self)->None:
+        pass
+
+    def goto(self, route:str)->None:
+        self.app.goto(route)
+
+    def clear_entrance(self, route:str)->None:
+        self.app.clear_entrance(route)
+
+    def clear_exit(self, route:str)->None:
+        self.app.clear_exit(route)
+
+    def guard_entrance(self, route:str, component_name:str)->None:
+        self.app.guard_entrance(route, component_name)
+
+    def guard_exit(self, route:str, component_name:str)->None:
+        self.app.guard_exit(route, component_name)

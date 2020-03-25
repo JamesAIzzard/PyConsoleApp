@@ -10,17 +10,16 @@ _TEMPLATE = '''Choose an option:
 GUARD_ROUTE = ['home', 'ingredients', 'new']
 
 
-class IngredientEditMenu(ConsoleAppComponent):
+class IngredientEditMenuComponent(ConsoleAppComponent):
     def __init__(self):
         super().__init__()
         self.set_option_response('1', self.on_set_name)
 
     def print(self):
         output = _TEMPLATE
-        output = self.app.get_component('StandardPage').print(output)
+        output = self.app.get_component('StandardPageComponent').print(output)
         return output
 
     def on_set_name(self):
-        self.app.guard_exit(GUARD_ROUTE, 'IngredientSaveCheck')
-        self.app.navigate(['.', 'name'])
+        self.goto('.name')
 
