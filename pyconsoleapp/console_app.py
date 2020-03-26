@@ -181,26 +181,26 @@ class ConsoleApp():
     def make_component_active(self, component_name:str)->None:
         self._active_components.append(self.get_component(component_name))
 
-    def get_component(self, name: str) -> 'ConsoleAppComponent':
+    def get_component(self, component_name: str) -> 'ConsoleAppComponent':
         # First look inside initialised components;
-        if name in self._components.keys():
-            return self._components[name]
+        if component_name in self._components.keys():
+            return self._components[component_name]
         # Not found, so create place to put constructor when found;
         constructor = None
         # Convert the PascalCase name to snake_case
-        snake_name = self._utility_service.pascal_to_snake(name)
+        snake_name = self._utility_service.pascal_to_snake(component_name)
         # Then look in the default components;
         builtins_package = configs.builtin_component_package + '.{}'
         if importlib.util.find_spec(builtins_package.format(snake_name)):
             component_module = importlib.import_module(
                 builtins_package.format(snake_name))
-            constructor = getattr(component_module, name)
+            constructor = getattr(component_module, component_name)
         # Then look in the registered component packages;
         for package_path in self._component_packages:
             if importlib.util.find_spec('{}.{}'.format(package_path, snake_name)):
                 component_module = importlib.import_module('{}.{}'
                                                            .format(package_path, snake_name))
-                constructor = getattr(component_module, name)
+                constructor = getattr(component_module, component_name)
         # Raise an exception if the constructor was not found;
         if not constructor:
             raise ModuleNotFoundError('The component module {} was not found.'.\

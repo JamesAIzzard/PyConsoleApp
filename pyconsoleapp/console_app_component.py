@@ -48,6 +48,9 @@ class ConsoleAppComponent(ABC):
     def goto(self, route:str)->None:
         self.app.goto(route)
 
+    def get_component(self, component_name:str)->'ConsoleAppComponent':
+        return self.app.get_component(component_name)
+
     def clear_entrance(self, route:str)->None:
         self.app.clear_entrance(route)
 

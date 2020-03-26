@@ -17,7 +17,7 @@ class IngredientEditMenuComponent(ConsoleAppComponent):
 
     def print(self):
         output = _TEMPLATE
-        output = self.app.get_component('StandardPageComponent').print(output)
+        output = self.get_component('StandardPageComponent').print(output)
         return output
 
     def on_set_name(self):

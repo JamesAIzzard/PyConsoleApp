@@ -19,5 +19,5 @@ class YesNoDialogComponent(ConsoleAppComponent):
             message = self.message,
             space = int((configs.terminal_width_chars-13)/2)*''
         )
-        output = self.app.get_component('StandardPageComponent').print(output)
+        output = self.get_component('StandardPageComponent').print(output)
         return output

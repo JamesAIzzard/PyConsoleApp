@@ -12,7 +12,7 @@ class IngredientNameEditorComponent(ConsoleAppComponent):
 
     def print(self):
         output = _TEMPLATE.format(scope.ingredient_name)
-        output = self.app.get_component('StandardPageComponent').print(output)
+        output = self.get_component('StandardPageComponent').print(output)
         return output
 
     def dynamic_response(self, response):
