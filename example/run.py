@@ -2,9 +2,6 @@
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
-# Imports;
-import pinjector
-
 from pyconsoleapp.console_app import ConsoleApp
 from pyconsoleapp import configs
 

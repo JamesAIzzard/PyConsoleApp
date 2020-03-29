@@ -182,32 +182,35 @@ class ConsoleApp():
         self._active_components.append(self.get_component(component_name))
 
     def get_component(self, component_name: str) -> 'ConsoleAppComponent':
+        if component_name == 'MainMenuComponent':
+            print('')
         # First look inside initialised components;
         if component_name in self._components.keys():
             return self._components[component_name]
+        # Going to need to hunt for it, get the name into
+        # PascalCase;
+        pascal_name = self._utility_service.snake_to_pascal(component_name)
         # Not found, so create place to put constructor when found;
-        constructor = None
-        # Convert the PascalCase name to snake_case
-        snake_name = self._utility_service.pascal_to_snake(component_name)
+        constructor = None   
         # Then look in the default components;
         builtins_package = configs.builtin_component_package + '.{}'
-        if importlib.util.find_spec(builtins_package.format(snake_name)):
+        if importlib.util.find_spec(builtins_package.format(component_name)):
             component_module = importlib.import_module(
-                builtins_package.format(snake_name))
-            constructor = getattr(component_module, component_name)
+                builtins_package.format(component_name))
+            constructor = getattr(component_module, pascal_name)
         # Then look in the registered component packages;
         for package_path in self._component_packages:
-            if importlib.util.find_spec('{}.{}'.format(package_path, snake_name)):
+            if importlib.util.find_spec('{}.{}'.format(package_path, component_name)):
                 component_module = importlib.import_module('{}.{}'
-                                                           .format(package_path, snake_name))
-                constructor = getattr(component_module, component_name)
+                                                           .format(package_path, component_name))
+                constructor = getattr(component_module, pascal_name)
         # Raise an exception if the constructor was not found;
         if not constructor:
-            raise ModuleNotFoundError('The component module {} was not found.'.\
-                format(snake_name))
+            raise ModuleNotFoundError('The component class {} was not found.'.\
+                format(component_name))
         # Instantiate the class and add it to the components dict;
         component: 'ConsoleAppComponent' = constructor()
-        self._components[component.name] = component
+        self._components[component_name] = component
         # Add the app reference to the component instance;
         component.app = self
         # Return the finished component;
@@ -218,7 +221,8 @@ class ConsoleApp():
         self.add_route(route, component_name)
 
     def add_route(self, route: str, component_name: str) -> None:
-        self._route_component_maps[route] = component_name
+        self._route_component_maps[route] = \
+            self._utility_service.pascal_to_snake(component_name)
 
     def guard_entrance(self, route: str, component_name: str) -> None:
         route = self.interpret_relative_route(route)

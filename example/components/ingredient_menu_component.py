@@ -19,12 +19,12 @@ class IngredientMenuComponent(ConsoleAppComponent):
         self.set_option_response('4', self.on_view)
 
     def run(self):
-        self.guard_entrance('.new', 'IngredientCreateCheckComponent')
+        self.guard_entrance('.new', 'ingredient_create_check_component')
         scope.update_ingredient_display()
 
     def print(self):
         output = _MENU_TEMPLATE
-        output = self.get_component('StandardPageComponent').print(output)
+        output = self.get_component('standard_page_component').print(output)
         return output
 
     def on_create(self):

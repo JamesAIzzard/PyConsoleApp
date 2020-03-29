@@ -8,11 +8,11 @@ _TEMPLATE = '''Enter ingredient name (currently {}):
 class IngredientNameEditorComponent(ConsoleAppComponent):
 
     def run(self):
-        self.guard_exit('home.ingredients.new', 'IngredientSaveCheckComponent')
+        self.guard_exit('home.ingredients.new', 'ingredient_save_check_component')
 
     def print(self):
         output = _TEMPLATE.format(scope.ingredient_name)
-        output = self.get_component('StandardPageComponent').print(output)
+        output = self.get_component('standard_page_component').print(output)
         return output
 
     def dynamic_response(self, response):
