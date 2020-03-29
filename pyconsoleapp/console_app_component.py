@@ -10,8 +10,6 @@ if TYPE_CHECKING:
 
 class ConsoleAppComponent(ABC):
     def __init__(self):
-        self._utility_service: 'utility_service' = inject(
-            'cli.utility_service')
         self.option_responses: Dict[str, Callable] = {}
         self.app: 'ConsoleApp' = inject('cli.app')
 
@@ -29,8 +27,11 @@ class ConsoleAppComponent(ABC):
         if name == 'print':
             # Call the on_run method;
             self.run()
-            # Add this component to the active components list;
-            self.app.make_component_active(self._utility_service
+            # Add this component to the active components list
+            # (Don't bring service onto scope, because some child is likely to
+            # want to write to self._utility_service, overwriting it);
+            utility_service:'utility_service' = inject('cli.utility_service')
+            self.app.make_component_active(utility_service
                                            .pascal_to_snake(self.name))
         # Return whatever was requested;
         return super().__getattribute__(name)
