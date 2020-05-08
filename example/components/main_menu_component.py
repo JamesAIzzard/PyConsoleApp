@@ -23,7 +23,7 @@ class MainMenuComponent(ConsoleAppComponent):
         return output
 
     def on_manage_ingredients(self):
-        self.app.info_message = 'Navigation success :)'
+        self.app.info_message = 'Navigation success :) Adding an extra long message here to show how line wrapping works on these info messages.'
         self.goto('.ingredients')
 
     def on_manage_recipes(self):
