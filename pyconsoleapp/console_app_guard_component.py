@@ -1,4 +1,4 @@
-from pyconsoleapp import ConsoleAppComponent
+from pyconsoleapp.console_app_component import ConsoleAppComponent
 
 
 class ConsoleAppGuardComponent(ConsoleAppComponent):

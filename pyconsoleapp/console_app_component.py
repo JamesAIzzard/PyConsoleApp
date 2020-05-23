@@ -5,7 +5,7 @@ from pyconsoleapp.console_app import ConsoleApp
 from pinjector import inject
 
 if TYPE_CHECKING:
-    from pyconsoleapp import utility_service
+    pass
 
 
 class ConsoleAppComponent(ABC):
