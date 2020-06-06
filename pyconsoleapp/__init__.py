@@ -3,3 +3,4 @@ from pyconsoleapp.components import (
     ConsoleAppComponent,
     ConsoleAppGuardComponent
 )
+from pyconsoleapp.exceptions import PyConsoleAppException
