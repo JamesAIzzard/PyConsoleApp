@@ -1,6 +1,6 @@
 from textwrap import fill
 
-from pyconsoleapp import ConsoleAppComponent, configs, parse_tools
+from pyconsoleapp import ConsoleAppComponent, configs, parse_tools, styles
 from example import todo_service
 
 _TEMPLATE = '''TODO's:
@@ -15,7 +15,7 @@ _TEMPLATE = '''TODO's:
 
 def format_todo(number: int, todo: str) -> str:
     return '{number}. {todo}'.format(
-        number=number+1,
+        number=styles.weight(str(number+1), 'bright'),
         todo=fill(todo, configs.terminal_width_chars) + '\n\n')
 
 
@@ -30,7 +30,7 @@ class TodoMenuComponent(ConsoleAppComponent):
     def print(self):
         # Build the todo list;
         if not len(self.todo_service.todos):
-            todos = "No TODO's added yet."
+            todos = styles.fore("No TODO's added yet.", 'blue')
         else:
             todos = ''
             for i,todo in enumerate(self.todo_service.todos):
