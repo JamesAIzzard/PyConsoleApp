@@ -3,7 +3,10 @@ import re
 import importlib
 import importlib.util
 from typing import Callable, Dict, List, Optional, TYPE_CHECKING, cast
-import readline
+if os.name == 'nt':
+    from pyautogui import write
+else:
+    import readline
 
 from pyconsoleapp import configs as cfg
 
@@ -19,15 +22,18 @@ def pascal_to_snake(text: str) -> str:
 
 
 def snake_to_pascal(text: str) -> str:
-    import re
     return ''.join(x.capitalize() or '_' for x in text.split('_'))
 
 def rlinput(prompt, prefill=''):
-    readline.set_startup_hook(lambda: readline.insert_text(prefill))
-    try:
+    if os.name == 'nt':
+        write(prefill)
         return input(prompt)
-    finally:
-        readline.set_startup_hook()
+    else:
+        readline.set_startup_hook(lambda: readline.insert_text(prefill))
+        try:
+            return input(prompt)
+        finally:
+            readline.set_startup_hook()
 
 class ConsoleApp():
     def __init__(self, name):

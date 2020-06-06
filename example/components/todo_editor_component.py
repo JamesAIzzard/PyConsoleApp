@@ -1,4 +1,4 @@
-from pyconsoleapp import ConsoleAppComponent
+from pyconsoleapp import ConsoleAppComponent, styles
 from example import todo_service
 
 _TEMPLATE = 'Enter a TODO and press (enter):\n'
