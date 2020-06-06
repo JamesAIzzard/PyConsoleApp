@@ -1,4 +1,3 @@
-from example.todo_service import todos
 from textwrap import fill
 
 from pyconsoleapp import ConsoleAppComponent, configs, parse_tools
@@ -24,16 +23,17 @@ class TodoMenuComponent(ConsoleAppComponent):
 
     def __init__(self, app):
         super().__init__(app)
+        self.todo_service = todo_service.TodoService()
         # Configure fixed option responses;
         self.set_option_response('a', self.on_add_todo)
 
     def print(self):
         # Build the todo list;
-        if not len(todo_service.todos):
+        if not len(self.todo_service.todos):
             todos = "No TODO's added yet."
         else:
             todos = ''
-            for i,todo in enumerate(todo_service.todos):
+            for i,todo in enumerate(self.todo_service.todos):
                 todos = todos + format_todo(i, todo)
         # Build the main page detail;
         output = _TEMPLATE.format(
@@ -53,15 +53,16 @@ class TodoMenuComponent(ConsoleAppComponent):
         except parse_tools.LetterIntegerParseError:
             return # Do nothing if input was invalid.
         # Check the integer refers to a todo;
-        if todo_num > len(todo_service.todos) or todo_num < 1:
+        if todo_num > len(self.todo_service.todos) or todo_num < 1:
             # Just return, it can't refer to any on the list;
             return
         # If the user is deleting;
         if letter == 'r':
-            todo_service.todos.pop(todo_num-1)
+            self.todo_service.todos.pop(todo_num-1)
         # If the user is editing;
         elif letter == 'e':
-            # Select the todo number;
-            todo_service.current_todo_index = todo_num-1
+            # Set the todo index and switch to editing;
+            self.todo_service.current_todo_index = todo_num-1
+            self.todo_service.editing = True
             # Redirect to the editor;
             self.app.goto('todos.edit')
