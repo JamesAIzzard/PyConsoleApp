@@ -12,7 +12,7 @@ class TestParseLetterAndInteger(TestCase):
         letter, integer = parse_tools.parse_letter_and_integer('a12')
         self.assertEqual(letter, 'a')
         self.assertEqual(integer, 12)
-        letter, integer = parse_tools.parse_letter_and_integer('a 12')
+        letter, integer = parse_tools.parse_letter_and_integer('a 12.0')
         self.assertEqual(letter, 'a')
         self.assertEqual(integer, 12)
 
@@ -24,6 +24,23 @@ class TestParseLetterAndInteger(TestCase):
         with self.assertRaises(parse_tools.LetterIntegerParseError):
             parse_tools.parse_letter_and_integer('1')
 
+class TestParseLetterAndFloat(TestCase):
+
+    def test_parses_correctly(self):
+        letter, number = parse_tools.parse_letter_and_float('i20.5')
+        self.assertEqual(letter, 'i')
+        self.assertEqual(number, 20.5)
+        letter, number = parse_tools.parse_letter_and_float('i 20.5')
+        self.assertEqual(letter, 'i')
+        self.assertEqual(number, 20.5)    
+
+    def test_catches_broken_string(self):
+        with self.assertRaises(parse_tools.LetterFloatParseError):
+            parse_tools.parse_letter_and_float('')
+        with self.assertRaises(parse_tools.LetterFloatParseError):
+            parse_tools.parse_letter_and_float('  ')
+        with self.assertRaises(parse_tools.LetterFloatParseError):
+            parse_tools.parse_letter_and_float('1')            
 
 class TestParseNumberAndText(TestCase):
 
