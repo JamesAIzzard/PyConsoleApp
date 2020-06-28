@@ -107,7 +107,7 @@ def parse_letter_and_float(chars_to_parse: str) -> Tuple[str, float]:
     # Tests passed, so return the value;
     return (letter, number)
 
-def parse_flags_and_string(chars_to_parse:str) -> Tuple[List[str], Optional[str]]:
+def parse_flags_and_text(chars_to_parse:str) -> Tuple[List[str], Optional[str]]:
     # Split the input on whitespace;
     split_input = chars_to_parse.split(' ')
     # Pop any flags into the flag list;

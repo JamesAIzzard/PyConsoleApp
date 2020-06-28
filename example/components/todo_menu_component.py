@@ -48,7 +48,7 @@ class TodoMenuComponent(ConsoleAppComponent):
 
     def dynamic_response(self, raw_response: str) -> None:
         # Parse into flags and string;
-        flags, todo_num = parse_tools.parse_flags_and_string(raw_response)
+        flags, todo_num = parse_tools.parse_flags_and_text(raw_response)
 
         # Check the number can be an integer;
         if not todo_num:
