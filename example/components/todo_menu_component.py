@@ -7,9 +7,9 @@ _TEMPLATE = '''TODO's:
 {hr}
 {todos}
 {hr}
-(a)  -- Add a todo.
-(r*) -- Remove todo number *.
-(e*) -- Edit todo number *.
+(-a)   -- Add a todo.
+(-r *) -- Remove todo number *.
+(-e *) -- Edit todo number *.
 '''
 
 
@@ -25,7 +25,7 @@ class TodoMenuComponent(ConsoleAppComponent):
         super().__init__(app)
         self.todo_service = todo_service.TodoService()
         # Configure fixed option responses;
-        self.set_option_response('a', self.on_add_todo)
+        self.set_option_response('-a', self.on_add_todo)
 
     def print(self):
         # Build the todo list;
@@ -47,20 +47,27 @@ class TodoMenuComponent(ConsoleAppComponent):
         self.app.goto('todos.edit')
 
     def dynamic_response(self, raw_response: str) -> None:
-        # Try and parse the response into a letter and int;
+        # Parse into flags and string;
+        flags, todo_num = parse_tools.parse_flags_and_string(raw_response)
+
+        # Check the number can be an integer;
+        if not todo_num:
+            return
         try:
-            letter, todo_num = parse_tools.parse_letter_and_integer(raw_response)
-        except parse_tools.LetterIntegerParseError:
-            return # Do nothing if input was invalid.
+            todo_num = int(todo_num)
+        except ValueError:
+            return
         # Check the integer refers to a todo;
         if todo_num > len(self.todo_service.todos) or todo_num < 1:
             # Just return, it can't refer to any on the list;
             return
+
         # If the user is deleting;
-        if letter == 'r':
+        if flags == ['-r']:
             self.todo_service.todos.pop(todo_num-1)
+
         # If the user is editing;
-        elif letter == 'e':
+        elif flags == ['-e']:
             # Set the todo index and switch to editing;
             self.todo_service.current_todo_index = todo_num-1
             self.todo_service.editing = True
