@@ -61,4 +61,8 @@ class TestParseFlagsAndString(TestCase):
         
         output = parse_tools.parse_flags_and_text('Test String')
         correct_result = ([], 'Test String')
-        self.assertEqual(output, correct_result)                    
+        self.assertEqual(output, correct_result)   
+
+        output = parse_tools.parse_flags_and_text('')
+        correct_result = ([], None)
+        self.assertEqual(output, correct_result)                            
