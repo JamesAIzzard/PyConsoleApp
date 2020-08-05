@@ -1,0 +1,2 @@
+class TodoAppException(Exception):
+    pass

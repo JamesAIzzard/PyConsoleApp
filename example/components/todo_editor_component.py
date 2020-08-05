@@ -1,33 +1,38 @@
-from pyconsoleapp import ConsoleAppComponent, styles
+from typing import TYPE_CHECKING
+
+from pyconsoleapp import ConsoleAppComponent
+
 from example import todo_service
 
-_TEMPLATE = 'Enter a TODO and press (enter):\n'
+if TYPE_CHECKING:
+    from example.todo import Todo
+
+_template = '''
+(Enter) -> Update the todo.
+'''
 
 class TodoEditorComponent(ConsoleAppComponent):
 
     def __init__(self, app):
         super().__init__(app)
-        self.todo_service = todo_service.TodoService()
+        self.subject:'Todo'
+        self.configure_printer(self.print_view)
+        self.configure_responder(self.on_enter, args=[
+            self.configure_primary_arg(name='todo', markers=[None]),
+            self.configure_option_arg(name='today', markers=['--today', '-t']),
+            self.configure_option_arg(name='importance', markers=['--importance', '-i'],
+                validators=[todo_service.validate_importance_score])
+        ])
 
-    def print(self):
-        output = self.app.fetch_component('standard_page_component').print(_TEMPLATE)
-        # If we are editing a todo;
-        if self.todo_service.editing:
-            return output, self.todo_service.selected_todo
-        # If we are creating a new todo;
-        else:
-            return output
+    def print_view(self):
+        output = self.app.fetch_component('standard_page_component').print(
+            page_title='Todo Editor:',
+            page_content=_template
+        )
+        return output, self.subject.text
 
-    def dynamic_response(self, raw_response: str) -> None:
-        # If we are editing a todo;
-        if self.todo_service.editing:
-            # Update it;
-            self.todo_service.todos[self.todo_service.current_todo_index] = raw_response
-        # If we are creating a new todo;
-        elif not self.todo_service.editing:
-            # Append the todo to the list;
-            self.todo_service.todos.append(raw_response)
-        # Turn off edit mode;
-        self.todo_service.editing = False
-        # Redirect back to the main menu;
+    def on_enter(self, response:str):
+        # Update the response;
+        self.subject.text = response
+        # Head back to the menu;
         self.app.goto('todos')

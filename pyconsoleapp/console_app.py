@@ -1,20 +1,19 @@
-import os
-import re
-import importlib
-import importlib.util
+import os, re, importlib
+from importlib import util
 from typing import Callable, Dict, List, Optional, TYPE_CHECKING, cast
 if os.name == 'nt':
     from pyautogui import write
 else:
     import readline
 
-from pyconsoleapp import configs as cfg
+from pyconsoleapp import configs, exceptions, ResponseValidationError
 
 if TYPE_CHECKING:
     from pyconsoleapp.components import (
         ConsoleAppComponent,
         ConsoleAppGuardComponent
     )
+
 
 def pascal_to_snake(text: str) -> str:
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', text)
@@ -23,6 +22,7 @@ def pascal_to_snake(text: str) -> str:
 
 def snake_to_pascal(text: str) -> str:
     return ''.join(x.capitalize() or '_' for x in text.split('_'))
+
 
 def rlinput(prompt, prefill=''):
     if os.name == 'nt':
@@ -35,6 +35,7 @@ def rlinput(prompt, prefill=''):
         finally:
             readline.set_startup_hook()
 
+
 class ConsoleApp():
     def __init__(self, name):
         self._response: Optional[str] = None
@@ -43,30 +44,30 @@ class ConsoleApp():
         self._route_history: List[str] = []
         self._route_component_maps: Dict[str, str] = {}
         self._route_exit_guard_map: Dict[str, 'ConsoleAppGuardComponent'] = {}
-        self._route_entrance_guard_map: Dict[str,
-                                             'ConsoleAppGuardComponent'] = {}
+        self._route_entrance_guard_map: Dict[str, 'ConsoleAppGuardComponent'] = {}
         self._components: Dict[str, 'ConsoleAppComponent'] = {}
-        self._active_components: List['ConsoleAppComponent'] = []        
+        self._active_components: List['ConsoleAppComponent'] = []
         self._component_packages: List[str] = []
+        self.finished_responding: bool = False        
         self._quit: bool = False
         self.name: str = name
         self.error_message: Optional[str] = None
         self.info_message: Optional[str] = None
 
     @property
-    def _active_option_responses(self) -> Dict[str, Callable]:
+    def _active_response_functions(self) -> Dict[str, Callable]:
         '''Returns a dict of all currently active option responses.
 
         Returns:
             Dict[str, Callable]: A dict of all currently active option
             responses.
         '''
-        # Collect the option responses map from each active component;
-        option_responses = {}
+        # Collect the response function map from each active component;
+        response_functions = {}
         for component in self._active_components:
-            option_responses.update(component.option_responses)
+            response_functions.update(component._response_functions)
         # Then return them;
-        return option_responses
+        return response_functions
 
     @property
     def route(self) -> str:
@@ -85,39 +86,13 @@ class ConsoleApp():
         else:
             raise KeyError('The route {} was not recognised.'.format(route))
 
-    def _fetch_component_for_route(self, route: str) -> 'ConsoleAppComponent':
-        component_name = self._route_component_maps[route]
-        return self.fetch_component(component_name)
+    def root_route(self, route: str, component_class_name: str) -> None:
+        self._root_route = route
+        self.add_route(route, component_class_name)
 
-    def _check_guards(self, route: str) -> None:
-        '''Runs and collects response from any applicable guards.
-
-        Args:
-            route (List[str]): The current route.
-        '''
-        # Place to put matching guard component (if found);
-        component = None
-        # First check the exit guards;
-        for guarded_route in self._route_exit_guard_map.keys():
-            # If the guarded root does not feature in the submitted route;
-            if not guarded_route in route:
-                # The submitted route must have exited, so populate the component;
-                component = self._route_exit_guard_map[guarded_route]
-                # And don't look through any more exit guards;
-                break
-        # Now check the entrance guards;
-        for guarded_route in self._route_entrance_guard_map.keys():
-            # If the guarded root is part of the submitted route;
-            if guarded_route in route:
-                # Then the submitted route must be beyond the guard, so populate the
-                # component;
-                component = self._route_entrance_guard_map[guarded_route]
-                # And don't look through any more entrance guards;
-                break
-        # If the guard component was populated, then use it;
-        if component:
-            self.clear_console()
-            self._response = input(component.print())
+    def add_route(self, route: str, component_class_name: str) -> None:
+        self._route_component_maps[route] = \
+            pascal_to_snake(component_class_name)
 
     def interpret_relative_route(self, route: str) -> str:
         '''Converts a relative route with point notation
@@ -167,11 +142,9 @@ class ConsoleApp():
             else:
                 return self._root_route + route
 
-    def register_component_package(self, package_path: str) -> None:
-        self._component_packages.append(package_path)
-
-    def activate_component(self, component_instance:'ConsoleAppComponent') -> None:
-        self._active_components.append(component_instance)
+    def _fetch_component_for_route(self, route: str) -> 'ConsoleAppComponent':
+        component_name = self._route_component_maps[route]
+        return self.fetch_component(component_name)
 
     def make_component(self, component_class_name: str) -> 'ConsoleAppComponent':
         '''Creates and returns a new instance of the component by finding its 
@@ -182,14 +155,14 @@ class ConsoleApp():
         # Create place to put constructor when found;
         constructor = None
         # Then look in the default components;
-        builtins_package = cfg.builtin_component_package + '.{}'
-        if importlib.util.find_spec(builtins_package.format(component_filename)):
+        builtins_package = configs.builtin_component_package + '.{}'
+        if util.find_spec(builtins_package.format(component_filename)):
             component_module = importlib.import_module(
                 builtins_package.format(component_filename))
             constructor = getattr(component_module, component_class_name)
         # Still not found, so look in the registered component packages;
         for package_path in self._component_packages:
-            if importlib.util.find_spec('{}.{}'.format(package_path, component_filename)):
+            if util.find_spec('{}.{}'.format(package_path, component_filename)):
                 component_module = importlib.import_module('{}.{}'
                                                            .format(package_path, component_filename))
                 constructor = getattr(component_module, component_class_name)
@@ -217,13 +190,56 @@ class ConsoleApp():
         # Possibly not loaded yet, so make try make;
         return self.make_component(component_class_name)
 
-    def root_route(self, route: str, component_class_name: str) -> None:
-        self._root_route = route
-        self.add_route(route, component_class_name)
+    def register_component_package(self, package_path: str) -> None:
+        '''Registers a dir as containing component files.
 
-    def add_route(self, route: str, component_class_name: str) -> None:
-        self._route_component_maps[route] = \
-            pascal_to_snake(component_class_name)
+        Args:
+            package_path (str): Path to dir containing files.
+        '''
+        self._component_packages.append(package_path)
+
+    def register_component_packages(self, package_paths: List[str]) -> None:
+        '''Registers a list of dirs as containing component files.
+
+        Args:
+            package_paths (List[str]): List of dirs containing component files.
+        '''
+        for path in package_paths:
+            self.register_component_package(path)
+
+    def activate_component(self, component_instance: 'ConsoleAppComponent') -> None:
+        if not component_instance in self._active_components:
+            self._active_components.append(component_instance)
+
+    def _check_guards(self, route: str) -> None:
+        '''Runs and collects response from any applicable guards.
+
+        Args:
+            route (List[str]): The current route.
+        '''
+        # Place to put matching guard component (if found);
+        component = None
+        # First check the exit guards;
+        for guarded_route in self._route_exit_guard_map.keys():
+            # If the guarded root does not feature in the submitted route;
+            if not guarded_route in route:
+                # The submitted route must have exited, so populate the component;
+                component = self._route_exit_guard_map[guarded_route]
+                # And don't look through any more exit guards;
+                break
+        # Now check the entrance guards;
+        for guarded_route in self._route_entrance_guard_map.keys():
+            # If the guarded root is part of the submitted route;
+            if guarded_route in route:
+                # Then the submitted route must be beyond the guard, so populate the
+                # component;
+                component = self._route_entrance_guard_map[guarded_route]
+                # And don't look through any more entrance guards;
+                break
+        # If the guard component was populated, then use it;
+        if component:
+            self.clear_console()
+            self._response = input(component.call_print())
 
     def guard_entrance(self, route: str, guard_component_class_name: str) -> None:
         # Interpret the route;
@@ -255,22 +271,45 @@ class ConsoleApp():
         if route in self._route_exit_guard_map.keys():
             del self._route_exit_guard_map[route]
 
-    def process_response(self, response):
-        '''First runs any matching active option responses. Then runs
-        all active dynamic responses.
+    def process_response(self, response: str) -> None:
+        '''If the response is empty, iterates over active components
+        calling for an available empty-responder. If not empty, first
+        iterates over active components looking for a matching marker-responder,
+        then iterates over active components looking for a markerless-responder.
 
         Args:
             response (str): The user's response.
-        '''
-        # Collect the currently active option responses;
-        active_option_responses = self._active_option_responses
-        # If the response matches any static options;
-        if response in active_option_responses.keys():
-            active_option_responses[response]()
-        # If not, run the dynamic responses;
-        else:
+        '''   
+        try:
+            # If the response is empty, give each active component a chance to respond;
+            if response.replace(' ', '') == '':
+                for component in self._active_components:
+                    empty_responder = component.empty_responder
+                    if empty_responder:
+                        empty_responder()
+                        if self.finished_responding: return
+            
+            # Otherwise, give any marker-only responders a chance;
+            else:
+                for component in self._active_components:
+                    responders = component.marker_responders
+                    if len(responders):
+                        for responder in responders:
+                            if responder.check_for_min_markers(response):
+                                responder(response)
+                                if self.finished_responding: return
+           
+            # Finally give each active component a chance to field a
+            # markerless responder;
             for component in self._active_components:
-                component.dynamic_response(response)
+                markerless_responder = component.markerless_responder
+                if markerless_responder:
+                    markerless_responder(response)
+                    if self.finished_responding: return
+        
+        except ResponseValidationError as err:
+            if err.message: self.error_message = err.message
+            return
 
     def run(self) -> None:
         '''Main run loop for the CLI
@@ -280,6 +319,7 @@ class ConsoleApp():
             # If response has been collected;
             if not self._response == None:
                 self.process_response(self._response)
+                self.finished_responding = False
                 self._response = None
             # If we are drawing the next view;
             else:
@@ -290,9 +330,9 @@ class ConsoleApp():
                 if not self._response:
                     # Grab the matching component;
                     component = self._fetch_component_for_route(self.route)
-                    # Call run;
-                    component.run()
-                    # Grab component again, in case run changed the route;
+                    # Call before print function;
+                    component.before_print()
+                    # Grab component again, in case before_print changed the route;
                     component = self._fetch_component_for_route(self.route)
                     # Clear the screen;
                     self.clear_console()
@@ -310,8 +350,8 @@ class ConsoleApp():
         route = self.interpret_relative_route(route)
         # Save the current route to the history;
         self._route_history.append(self.route)
-        ## Make sure the history doesn't get too long;
-        while len(self._route_history) > cfg.route_history_length:
+        # Make sure the history doesn't get too long;
+        while len(self._route_history) > configs.route_history_length:
             self._route_history.pop(0)
         # Set the new route;
         self.route = route

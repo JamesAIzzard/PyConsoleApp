@@ -1,15 +1,10 @@
-from typing import TYPE_CHECKING
-
-from pyconsoleapp.components import ConsoleAppComponent
-from pyconsoleapp import configs as cfg
-
-if TYPE_CHECKING:
-    from pyconsoleapp import ConsoleApp
+from pyconsoleapp import ConsoleAppComponent, configs
 
 class DoubleHrComponent(ConsoleAppComponent):
-    def __init__(self, app:'ConsoleApp'):
+    def __init__(self, app):
         super().__init__(app)
+        self.configure_printer(self.print_view)
 
-    def print(self):
-        output = '='*cfg.terminal_width_chars+'\n'
+    def print_view(self):
+        output = '='*configs.terminal_width_chars+'\n'
         return output

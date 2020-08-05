@@ -1,20 +1,23 @@
-from typing import TYPE_CHECKING
-
 from pyconsoleapp.components import ConsoleAppComponent
 
-if TYPE_CHECKING: 
-    from pyconsoleapp.console_app import ConsoleApp
+_template = '''-back, -b -> Navigate back.
+-quit, -q -> Quit.
+'''
 
 class NavOptionsComponent(ConsoleAppComponent):
     
-    def __init__(self, app:'ConsoleApp'):
+    def __init__(self, app):
         super().__init__(app)
-        self.set_option_response('b', self.on_back)
-        self.set_option_response('q', self.on_quit)
+        self.configure_printer(self.print_view)
+        self.configure_responder(self.on_back, args=[
+            self.configure_primary_arg(markers=['-back', '-b'])
+        ])
+        self.configure_responder(self.on_quit, args=[
+            self.configure_primary_arg(markers=['-quit', '-q'])
+        ])
 
-    def print(self):
-        output = '(b)ack | (q)uit\n'
-        return output
+    def print_view(self):
+        return _template
 
     def on_back(self)->None:
         self.app.goto('..')
