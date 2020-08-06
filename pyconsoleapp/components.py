@@ -36,6 +36,14 @@ class Responder():
     def args(self) -> List['ResponderArg']:
         return self._args
 
+    # @property
+    # def all_markers(self) ->List[str]:
+    #     all_markers = []
+    #     for arg in self.args:
+    #         for marker in arg.markers:
+    #             if not marker == None: all_markers.append(marker)
+    #     return all_markers
+
     def check_response_match(self, response: str) -> bool:
         '''Returns True/False to indicate if all of the primary
         argument markers are present in the response.
@@ -47,12 +55,51 @@ class Responder():
             bool: To indicate match or no match.
         '''
         for arg in self.args:
-            if not arg.name == None and arg.primary:
-                if not arg.check_marker_is_present(response): return False
+            if arg.primary:
+                if not arg.check_marker_match(response):
+                    return False
         return True
 
-
     def parse_response_to_args(self, response: str) -> Dict[str, Any]:
+        # -add This is an important note --today --importance 2
+
+        # TODO - Handle collection of leading response without marker.
+
+        parsed_args = {}
+
+        if self.is_argless_responder:
+            return parsed_args
+
+        remaining_args = self.args.copy()
+        # [add, today, importance]
+
+        # Chunk the response on whitespace;
+        chunked_response = response.split()
+        # [
+        # '-add',
+        # 'This',
+        # 'is',
+        # 'an',
+        # 'important'
+        # 'note',
+        # '--today',
+        # '--importance',
+        # '2'
+        # ]
+
+        def return_parent_arg(marker) -> 'ResponseArg':
+            pass
+
+        for word in chunked_response:
+
+            current_arg = None
+
+            # Is the word a marker?;
+            for arg in remaining_args:
+                if word in arg.markers:
+                    current_arg = arg
+                    break
+
         raise NotImplementedError
 
     def __call__(self, response: str = '') -> None:
@@ -61,7 +108,7 @@ class Responder():
         # Ready to go, assume stop responding after this;
         # (Component can undo this if it wants to continue the
         # response cycle).
-        self._app.finished_responding = True
+        self._app.stop_responding()
         # Call the function, passing those args;
         self._func(args)
 
@@ -79,10 +126,19 @@ class ResponderArg():
         self._validators = validators
         self._default_value = default_value
 
-    def check_marker_is_present(self, response: str) -> bool:
+    def check_marker_match(self, response: str) -> bool:
+        '''Returns True/False to indicate if markers for this argument
+        are present in the response.
+
+        Args:
+            response (str): Response to search for arguments.
+
+        Returns:
+            bool: To indicate if a marker was found.
+        '''
         chunked_response = response.split()
         for marker in self.markers:
-            if marker in chunked_response:
+            if marker in chunked_response or marker == None:
                 return True
         return False
 

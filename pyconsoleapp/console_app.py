@@ -48,7 +48,7 @@ class ConsoleApp():
         self._components: Dict[str, 'ConsoleAppComponent'] = {}
         self._active_components: List['ConsoleAppComponent'] = []
         self._component_packages: List[str] = []
-        self.finished_responding: bool = False        
+        self._finished_responding: bool = False        
         self._quit: bool = False
         self.name: str = name
         self.error_message: Optional[str] = None
@@ -284,10 +284,10 @@ class ConsoleApp():
             # If the response is empty, give each active component a chance to respond;
             if response.replace(' ', '') == '':
                 for component in self._active_components:
-                    empty_responder = component.empty_responder
-                    if empty_responder:
-                        empty_responder()
-                        if self.finished_responding: return
+                    argless_responder = component.argless_responder
+                    if argless_responder:
+                        argless_responder()
+                        if self._finished_responding: return
             
             # Otherwise, give any marker-only responders a chance;
             else:
@@ -295,9 +295,9 @@ class ConsoleApp():
                     responders = component.marker_responders
                     if len(responders):
                         for responder in responders:
-                            if responder.check_for_min_markers(response):
+                            if responder.check_response_match(response):
                                 responder(response)
-                                if self.finished_responding: return
+                                if self._finished_responding: return
            
             # Finally give each active component a chance to field a
             # markerless responder;
@@ -305,11 +305,17 @@ class ConsoleApp():
                 markerless_responder = component.markerless_responder
                 if markerless_responder:
                     markerless_responder(response)
-                    if self.finished_responding: return
+                    if self._finished_responding: return
         
         except ResponseValidationError as err:
             if err.message: self.error_message = err.message
             return
+
+    def continue_responding(self) -> None:
+        self._finished_responding = False
+
+    def stop_responding(self) -> None:
+        self._finished_responding = True
 
     def run(self) -> None:
         '''Main run loop for the CLI
@@ -319,7 +325,7 @@ class ConsoleApp():
             # If response has been collected;
             if not self._response == None:
                 self.process_response(self._response)
-                self.finished_responding = False
+                self._finished_responding = False
                 self._response = None
             # If we are drawing the next view;
             else:
