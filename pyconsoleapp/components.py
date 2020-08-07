@@ -1,5 +1,6 @@
 from abc import ABC
-from typing import Callable, Dict, List, Tuple, Any, Optional, Union, TYPE_CHECKING
+import itertools
+from typing import Callable, Dict, List, Tuple, Any, Optional, Union, TYPE_CHECKING, cast
 
 from pyconsoleapp import ConsoleApp, exceptions
 
@@ -36,14 +37,6 @@ class Responder():
     def args(self) -> List['ResponderArg']:
         return self._args
 
-    # @property
-    # def all_markers(self) ->List[str]:
-    #     all_markers = []
-    #     for arg in self.args:
-    #         for marker in arg.markers:
-    #             if not marker == None: all_markers.append(marker)
-    #     return all_markers
-
     def check_response_match(self, response: str) -> bool:
         '''Returns True/False to indicate if all of the primary
         argument markers are present in the response.
@@ -61,46 +54,40 @@ class Responder():
         return True
 
     def parse_response_to_args(self, response: str) -> Dict[str, Any]:
-        # -add This is an important note --today --importance 2
-
-        # TODO - Handle collection of leading response without marker.
 
         parsed_args = {}
+        found_markers = {}
 
         if self.is_argless_responder:
             return parsed_args
 
-        remaining_args = self.args.copy()
-        # [add, today, importance]
-
         # Chunk the response on whitespace;
-        chunked_response = response.split()
-        # [
-        # '-add',
-        # 'This',
-        # 'is',
-        # 'an',
-        # 'important'
-        # 'note',
-        # '--today',
-        # '--importance',
-        # '2'
-        # ]
+        words = response.split()
 
-        def return_parent_arg(marker) -> 'ResponseArg':
-            pass
+        # Add default vals against the args which are present,
+        # and none against those which are not;
+        for arg, word in itertools.product(self.args, words):
+            if word in arg.markers:
+                parsed_args[arg.name] = arg.default_value
+                found_markers[arg.name] = word
+            else:
+                parsed_args[arg.name] = None
 
-        for word in chunked_response:
+        #TODO - If the arg is valueless & present, assign True. If valueless but
+        # not present, assign False.
 
-            current_arg = None
-
-            # Is the word a marker?;
-            for arg in remaining_args:
+        # Populate the found args with any real values;
+        current_arg = None  # Starting with any markerless;
+        for word in words:
+            for arg in parsed_args.keys():
                 if word in arg.markers:
-                    current_arg = arg
-                    break
+                    current_arg = word
+                elif current_arg in parsed_args.keys():
+                    parsed_args[current_arg] = parsed_args[current_arg]+' '+word
 
-        raise NotImplementedError
+        # TODO - Now run validation over each arg.
+
+        return parsed_args
 
     def __call__(self, response: str = '') -> None:
         # Parse the response into args;
@@ -116,14 +103,17 @@ class Responder():
 class ResponderArg():
     def __init__(self,
                  primary: bool,
+                 markers: List[Union[str, None]],
                  name: Optional[str] = None,
-                 markers: List[Union[str, None]] = [],
                  validators: List[Callable] = [],
                  default_value: Any = None):
         self._primary = primary
         self._name = name
         self._markers = markers
         self._validators = validators
+
+        # TODO - Check that the default value passes the validation!
+
         self._default_value = default_value
 
     def check_marker_match(self, response: str) -> bool:
@@ -161,6 +151,20 @@ class ResponderArg():
     @property
     def default_value(self) -> Any:
         return self._default_value
+
+    @property
+    def is_markerless(self) -> bool:
+        if self.markers == [None]:
+            return True
+        else:
+            return False
+
+    @property
+    def is_valueless(self) -> bool:
+        if self.name == None:
+            return True
+        else:
+            return False
 
 
 class ConsoleAppComponent(ABC):
@@ -298,6 +302,29 @@ class ConsoleAppComponent(ABC):
                             validators=validators, default_value=default_value)
 
     @staticmethod
+    def configure_markerless_primary_arg(name: str,
+                                         validators: List[Callable] = [],
+                                         default_value: Any = None) -> 'ResponderArg':
+        '''Configures a primary argument object without a marker, i.e one whose value
+        is the text entered before the first marker found in the response.
+
+        Returns:
+            ResponderArg
+        '''
+        return ResponderArg(primary=True, markers=[None], name=name, validators=validators,
+                            default_value=default_value)
+
+    @staticmethod
+    def configure_valueless_primary_arg(markers: List[str]) -> 'ResponderArg':
+        '''Configures a primary argument object which only looks for a marker and no
+        additional arguments.
+
+        Returns:
+            ResponderArg
+        '''
+        return ResponderArg(primary=True, markers=cast(List[Union[str, None]], markers))
+
+    @staticmethod
     def configure_option_arg(name: Optional[str] = None,
                              markers: List[Union[str, None]] = [],
                              validators: List[Callable] = [],
@@ -314,11 +341,33 @@ class ConsoleAppComponent(ABC):
         return ResponderArg(primary=False, name=name, markers=markers,
                             validators=validators, default_value=default_value)
 
+    @staticmethod
+    def configure_markerless_option_arg(name: str,
+                                        validators: List[Callable] = [],
+                                        default_value: Any = None) -> 'ResponderArg':
+        '''Configures an option argument object without a marker, i.e one whose value
+        is the text entered before the first marker found in the response.
+
+        Returns:
+            ResponderArg
+        '''
+        return ResponderArg(primary=False, markers=[None], name=name, validators=validators, default_value=default_value)
+
+    @staticmethod
+    def configure_valueless_option_arg(markers: List[str]) -> 'ResponderArg':
+        '''Configures an option argument object which only looks for a marker and no
+        additional arguments.
+
+        Returns:
+            ResponderArg
+        '''
+        return ResponderArg(primary=False, markers=cast(List[Union[str, None]], markers))
+
     def configure_argless_responder(self,
                                     func: Callable,
                                     states: List[Union[str, None]] = [None]) -> None:
         '''A shortcut method to configure a responder to fire when the
-        user presses enter without entering something.
+        user presses enter without entering anything.
 
         Args:
             func (Callable): Function to call when responder is matched.

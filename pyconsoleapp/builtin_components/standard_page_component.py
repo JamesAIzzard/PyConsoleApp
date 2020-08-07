@@ -13,7 +13,7 @@ _template_without_title = '''{header}
 class StandardPageComponent(ConsoleAppComponent):
     def __init__(self, app):
         super().__init__(app)
-        self.set_print_function(self.print_view)
+        self.configure_printer(self.print_view)
 
     def print_view(self, page_content: str, page_title: str = None):
         # Populate the correct template and return;

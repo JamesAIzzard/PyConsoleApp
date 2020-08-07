@@ -6,7 +6,7 @@ if os.name == 'nt':
 else:
     import readline
 
-from pyconsoleapp import configs, exceptions, ResponseValidationError
+import pyconsoleapp as pcap
 
 if TYPE_CHECKING:
     from pyconsoleapp.components import (
@@ -155,7 +155,7 @@ class ConsoleApp():
         # Create place to put constructor when found;
         constructor = None
         # Then look in the default components;
-        builtins_package = configs.builtin_component_package + '.{}'
+        builtins_package = pcap.configs.builtin_component_package + '.{}'
         if util.find_spec(builtins_package.format(component_filename)):
             component_module = importlib.import_module(
                 builtins_package.format(component_filename))
@@ -307,7 +307,7 @@ class ConsoleApp():
                     markerless_responder(response)
                     if self._finished_responding: return
         
-        except ResponseValidationError as err:
+        except pcap.ResponseValidationError as err:
             if err.message: self.error_message = err.message
             return
 
@@ -357,7 +357,7 @@ class ConsoleApp():
         # Save the current route to the history;
         self._route_history.append(self.route)
         # Make sure the history doesn't get too long;
-        while len(self._route_history) > configs.route_history_length:
+        while len(self._route_history) > pcap.configs.route_history_length:
             self._route_history.pop(0)
         # Set the new route;
         self.route = route

@@ -4,7 +4,7 @@ from pyconsoleapp import styles, ConsoleAppComponent
 class TitleBarComponent(ConsoleAppComponent):
     def __init__(self, app):
         super().__init__(app)
-        self.set_print_function(self.print_view)
+        self.configure_printer(self.print_view)
 
     def print_view(self):
         output = '{app_name} | {route}\n'.format(
