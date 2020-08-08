@@ -10,10 +10,10 @@ class YesNoDialogComponent(ConsoleAppComponent):
         self.message: str
         self.configure_printer(self.print_view)
         self.configure_responder(self.on_yes, args=[
-            self.configure_valueless_primary_arg(markers=['-yes', '-y'])
+            self.configure_valueless_primary_arg(name='yes', markers=['-yes', '-y'])
         ])
         self.configure_responder(self.on_no, args=[
-            self.configure_valueless_primary_arg(markers=['-no', '-n'])
+            self.configure_valueless_primary_arg(name='no', markers=['-no', '-n'])
         ])
 
     def print_view(self):

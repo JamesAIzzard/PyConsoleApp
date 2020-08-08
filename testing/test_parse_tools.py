@@ -47,22 +47,4 @@ class TestParseNumberAndText(TestCase):
     def test_parses_correctly(self):
         output = parse_tools.parse_number_and_text('4kg')
         self.assertEqual(output, (4, 'kg'))
-
-class TestParseFlagsAndString(TestCase):
-
-    def test_parses_correctly(self):
-        output = parse_tools.parse_flags_and_text('-ac -b Test String')
-        correct_result = (['-ac', '-b'], 'Test String')
-        self.assertEqual(output, correct_result)
-        
-        output = parse_tools.parse_flags_and_text('-ac -b')
-        correct_result = (['-ac', '-b'], None)
-        self.assertEqual(output, correct_result)
-        
-        output = parse_tools.parse_flags_and_text('Test String')
-        correct_result = ([], 'Test String')
-        self.assertEqual(output, correct_result)   
-
-        output = parse_tools.parse_flags_and_text('')
-        correct_result = ([], None)
-        self.assertEqual(output, correct_result)                            
+                     

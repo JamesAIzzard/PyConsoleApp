@@ -33,7 +33,7 @@ class TodoMenuComponent(pcap.ConsoleAppComponent):
         # Configure response behaviors;
         self.configure_responder(self.add_todo, args=[
             self.configure_primary_arg(name='todo', markers=['-add', '-a']),
-            self.configure_valueless_option_arg(markers=['--today', '--t']),
+            self.configure_valueless_option_arg(name='today', markers=['--today', '--t']),
             self.configure_option_arg('importance', markers=['--importance', '--i'], default_value=1, 
                 validators=[pcap.builtin_validators.validate_integer, todo_service.validate_importance_score])  
         ])   
