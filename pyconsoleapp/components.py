@@ -76,6 +76,8 @@ class Responder():
         Returns:
             Dict[str, Any]: [description]
         '''
+        # Init checklist to record which args are present;
+        present_args = []
 
         # Init the dict with None for each value, or
         # False if arg is valueless;
@@ -113,6 +115,7 @@ class Responder():
                 # If the word is a marker, update the current arg name and
                 # skip onto the next word;
                 if word in arg.markers:
+                    present_args.append(arg.name)
                     if arg.is_valueless:
                         parsed_args[arg.name] = True
                         current_arg_name = None
@@ -125,6 +128,14 @@ class Responder():
                 add_to_arg_value(cast(str, current_arg_name), word)
 
         # TODO - Now run validation over each arg.
+        
+        for arg in self.args:
+            # Only check args which were found;
+            if arg.name in present_args:
+                # Check valued args all have values;
+                if not arg.is_valueless and parsed_args[arg.name] == None:
+                    raise exceptions.ArgMissingValueError('{arg_name} requires a value.'.format(
+                        arg_name=arg.name))
 
         return parsed_args
 

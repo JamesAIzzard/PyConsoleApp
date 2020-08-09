@@ -18,3 +18,7 @@ class DuplicateEmptyResponderError(PyConsoleAppError):
 class ResponseValidationError(PyConsoleAppError):
     def __init__(self, message:Optional[str]=None):
         self.message = message
+
+class ArgMissingValueError(ResponseValidationError):
+    def __init__(self, message:Optional[str]=None):
+        super().__init__(message)
