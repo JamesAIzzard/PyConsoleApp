@@ -5,10 +5,10 @@ _template_with_title = '''{header}
 {page_title}
 {page_title_underline}
 {page_content}
->>>'''
+>>> '''
 _template_without_title = '''{header}
 {page_content}
->>>'''
+>>> '''
 
 class StandardPageComponent(ConsoleAppComponent):
     def __init__(self, app):

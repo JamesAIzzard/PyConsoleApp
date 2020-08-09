@@ -34,8 +34,12 @@ class TodoService():
         # Return the todo;
         return self.todos[todo_num-1]
 
-    def validate_todo_num(self, todo_num:int)->int:
-        # Check the integer refers to a todo on the current list;
-        if todo_num > len(self.todos) or todo_num < 1:
+    def validate_todo_num(self, todo_num:str)->int:
+        try:
+            tn = int(todo_num)
+        except TypeError:
             raise pcap.ResponseValidationError('{todo_num} does not refer to a current todo.'.format(todo_num=todo_num))
-        return todo_num
+        # Check the integer refers to a todo on the current list;
+        if tn > len(self.todos) or tn < 1:
+            raise pcap.ResponseValidationError('{todo_num} does not refer to a current todo.'.format(todo_num=todo_num))
+        return tn

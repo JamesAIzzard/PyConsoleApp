@@ -22,7 +22,6 @@ class MessageBarComponent(ConsoleAppComponent):
                 fill(self.app.info_message, configs.terminal_width_chars)
             )
             output = styles.fore(output, 'blue')
-            output = output + \
-                self.app.fetch_component('single_hr_component').call_print()
+            output = output+('-'*configs.terminal_width_chars)+'\n'
             self.app.info_message = None
         return output

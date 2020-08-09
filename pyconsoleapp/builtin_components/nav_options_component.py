@@ -10,10 +10,10 @@ class NavOptionsComponent(ConsoleAppComponent):
         super().__init__(app)
         self.configure_printer(self.print_view)
         self.configure_responder(self.on_back, args=[
-            self.configure_primary_arg(name='back', markers=['-back', '-b'])
+            self.configure_valueless_primary_arg(name='back', markers=['-back', '-b'])
         ])
         self.configure_responder(self.on_quit, args=[
-            self.configure_primary_arg(name='back', markers=['-quit', '-q'])
+            self.configure_valueless_primary_arg(name='quit', markers=['-quit', '-q'])
         ])
 
     def print_view(self):

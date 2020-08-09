@@ -50,6 +50,9 @@ class TodoMenuComponent(pcap.ConsoleAppComponent):
             self.configure_primary_arg('todo_num', markers=['-edit', '-e'],
                 validators=[self.todo_service.validate_todo_num])
         ])
+        self.configure_responder(self.wahoo, args=[
+            self.configure_markerless_primary_arg(name='wahoo')
+        ])
 
     def print_view(self):
         # Build the todo list;
@@ -86,3 +89,6 @@ class TodoMenuComponent(pcap.ConsoleAppComponent):
 
         # Head to the editor;
         self.app.goto('todos.edit')
+
+    def wahoo(self, args) -> None:
+        self.app.info_message = args['wahoo']

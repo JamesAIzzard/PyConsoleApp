@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from example.todo import Todo
 
 _template = '''
-(Enter) -> Update the todo.
+Update the todo and press enter.
 '''
 
 class TodoEditorComponent(ConsoleAppComponent):
@@ -31,8 +31,10 @@ class TodoEditorComponent(ConsoleAppComponent):
         )
         return output, self.subject.text
 
-    def on_enter(self, response:str):
+    def on_enter(self, args):
         # Update the response;
-        self.subject.text = response
+        self.subject.text = args['todo']
+        self.subject.today = args['today']
+        self.subject.importance = args['importance']
         # Head back to the menu;
         self.app.goto('todos')

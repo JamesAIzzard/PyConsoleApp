@@ -43,7 +43,7 @@ class Responder():
     def markerless_arg(self) -> Optional['ResponderArg']:
         if self.has_markerless_arg:
             for arg in self.args:
-                if arg.is_valueless:
+                if arg.is_markerless:
                     return arg
         return None
 
@@ -126,8 +126,6 @@ class Responder():
             # Append value if not a marker, and an arg is collecting a value;
             if not current_arg_name == None and not is_marker:
                 add_to_arg_value(cast(str, current_arg_name), word)
-
-        # TODO - Now run validation over each arg.
         
         for arg in self.args:
             # Only check args which were found;
@@ -136,6 +134,9 @@ class Responder():
                 if not arg.is_valueless and parsed_args[arg.name] == None:
                     raise exceptions.ArgMissingValueError('{arg_name} requires a value.'.format(
                         arg_name=arg.name))
+                # If the value is not none, pass it through any validators assigned;
+                for validator in arg.validators:
+                    parsed_args[arg.name] = validator(parsed_args[arg.name])
 
         return parsed_args
 
