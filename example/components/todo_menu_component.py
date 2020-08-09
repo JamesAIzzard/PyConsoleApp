@@ -9,7 +9,6 @@ if TYPE_CHECKING:
     from example.components.todo_editor_component import TodoEditorComponent
 
 _template = '''{todos}
-
 -add, -a         [todo]       -> Add a todo.
     --today                   -> Flags as important.
     --importance [level: 1-3] -> Encodes todo as secret.
@@ -18,9 +17,15 @@ _template = '''{todos}
 '''
 
 def format_todo(number: int, todo: 'todo.Todo') -> str:
+    # Make the text red if today;
+    if todo.today:
+        text = pcap.styles.fore(todo.text, 'red')
+    else: 
+        text=todo.text
+    # Build & return the string;
     return '{number}. {todo_text}'.format(
         number=pcap.styles.weight(str(number), 'bright'),
-        todo_text=fill(todo.text, pcap.configs.terminal_width_chars) + '\n\n')
+        todo_text=fill(text, pcap.configs.terminal_width_chars) + '\n\n')
 
 
 class TodoMenuComponent(pcap.ConsoleAppComponent):
@@ -49,7 +54,7 @@ class TodoMenuComponent(pcap.ConsoleAppComponent):
     def print_view(self):
         # Build the todo list;
         if not len(self.todo_service.todos):
-            todos_menu = pcap.styles.fore("No TODO's added yet.", 'blue')
+            todos_menu = pcap.styles.fore("No TODO's added yet.\n", 'blue')
         else:
             todos_menu = ''
             for i, todo in enumerate(self.todo_service.todos):

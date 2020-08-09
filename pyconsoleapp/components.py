@@ -88,10 +88,12 @@ class Responder():
 
         # Helper function to accumulate arg values;
         def add_to_arg_value(name: str, word: str) -> None:
+            # Init the string if not started yet;
             if parsed_args[name] == None:
                 parsed_args[name] = word
+            # Otherwise just add to it;
             else:
-                parsed_args[name] = parsed_args[name]+' {}'.format(word)
+                parsed_args[name] = '{} {}'.format(parsed_args[name], word)
 
         # Work through the response, word by word and
         # pass values into the arg dict;
@@ -103,14 +105,24 @@ class Responder():
         else:
             current_arg_name = None
 
-        for word in words:  # Now cycle through each word in the response;
+        # Now cycle through each word in the response;
+        for word in words:
             # Check for matches against each arg;
+            is_marker = False
             for arg in self.args:
+                # If the word is a marker, update the current arg name and
+                # skip onto the next word;
                 if word in arg.markers:
-                    current_arg_name = arg.name
+                    if arg.is_valueless:
+                        parsed_args[arg.name] = True
+                        current_arg_name = None
+                    else:
+                        current_arg_name = arg.name
+                    is_marker = True
                     break
-                elif not current_arg_name == None:
-                    add_to_arg_value(current_arg_name, word)
+            # Append value if not a marker, and an arg is collecting a value;
+            if not current_arg_name == None and not is_marker:
+                add_to_arg_value(cast(str, current_arg_name), word)
 
         # TODO - Now run validation over each arg.
 
@@ -134,11 +146,13 @@ class Responder():
 class ResponderArg():
     def __init__(self,
                  primary: bool,
+                 valueless: bool,
                  name: str,
                  markers: List[Union[str, None]],
                  validators: List[Callable] = [],
                  default_value: Any = None):
         self._primary = primary
+        self._valueless = valueless
         self._name = name
         self._markers = markers
         self._validators = validators
@@ -192,10 +206,7 @@ class ResponderArg():
 
     @property
     def is_valueless(self) -> bool:
-        if self.name == None:
-            return True
-        else:
-            return False
+        return self._valueless
 
 
 class ConsoleAppComponent(ABC):
@@ -329,7 +340,7 @@ class ConsoleAppComponent(ABC):
         Returns:
             ResponderArg
         '''
-        return ResponderArg(primary=True, name=name, markers=markers,
+        return ResponderArg(primary=True, valueless=False, name=name, markers=markers,
                             validators=validators, default_value=default_value)
 
     @staticmethod
@@ -342,10 +353,8 @@ class ConsoleAppComponent(ABC):
         Returns:
             ResponderArg
         '''
-        return ConsoleAppComponent.configure_primary_arg(markers=[None],
-                                                         name=name,
-                                                         validators=validators,
-                                                         default_value=default_value)
+        return ResponderArg(primary=True, valueless=False, markers=[None],
+                            name=name, validators=validators, default_value=default_value)
 
     @staticmethod
     def configure_valueless_primary_arg(name: str,
@@ -356,8 +365,10 @@ class ConsoleAppComponent(ABC):
         Returns:
             ResponderArg
         '''
-        return ConsoleAppComponent.configure_primary_arg(name=name,
-                                                         markers=cast(List[Union[str, None]], markers))
+        if None in markers:
+            raise ValueError('Valueless args cannot have None as a marker')
+        return ResponderArg(primary=True, valueless=True,
+                            markers=cast(List[Union[str, None]], markers), name=name)
 
     @staticmethod
     def configure_option_arg(name: str,
@@ -373,7 +384,7 @@ class ConsoleAppComponent(ABC):
         Returns:
             ResponderArg
         '''
-        return ResponderArg(primary=False, name=name, markers=markers,
+        return ResponderArg(primary=False, valueless=False, name=name, markers=markers,
                             validators=validators, default_value=default_value)
 
     @staticmethod
@@ -386,8 +397,8 @@ class ConsoleAppComponent(ABC):
         Returns:
             ResponderArg
         '''
-        return ConsoleAppComponent.configure_option_arg(markers=[None], name=name,
-                                                        validators=validators, default_value=default_value)
+        return ResponderArg(primary=False, valueless=False, markers=[None],
+                            name=name, validators=validators, default_value=default_value)
 
     @staticmethod
     def configure_valueless_option_arg(name: str,
@@ -398,7 +409,10 @@ class ConsoleAppComponent(ABC):
         Returns:
             ResponderArg
         '''
-        return ConsoleAppComponent.configure_option_arg(name, markers=cast(List[Union[str, None]], markers))
+        if None in markers:
+            raise ValueError('Valueless args cannot have None as a marker')
+        return ResponderArg(primary=False, valueless=True,
+                            markers=cast(List[Union[str, None]], markers), name=name)
 
     def configure_argless_responder(self,
                                     func: Callable,
