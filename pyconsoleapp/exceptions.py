@@ -9,7 +9,10 @@ class NoPrintFunctionError(PyConsoleAppError):
 class StateNotFoundError(PyConsoleAppError):
     pass
 
-class SignatureClashError(PyConsoleAppError):
+class DuplicatePrimaryMarkerError(PyConsoleAppError):
+    pass
+
+class DuplicateMarkerlessArgError(PyConsoleAppError):
     pass
 
 class DuplicateEmptyResponderError(PyConsoleAppError):

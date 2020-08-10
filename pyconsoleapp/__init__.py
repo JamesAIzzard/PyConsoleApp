@@ -11,6 +11,5 @@ from pyconsoleapp import (builtin_validators,
                           exceptions,
                           format_tools,
                           menu_tools,
-                          parse_tools,
                           search_tools,
                           styles)

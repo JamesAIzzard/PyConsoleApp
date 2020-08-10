@@ -16,6 +16,25 @@ class Responder():
         self._app = app
         self._func = func
         self._args = args
+        
+        # Check there are not multiple markerless args within this responder;
+        markerless_found = False
+        for arg in args:
+            if arg.is_markerless:
+                if not markerless_found:
+                    markerless_found = True
+                else:
+                    raise exceptions.DuplicateMarkerlessArgError
+
+        
+        # Check there are no primary marker clashes within this responder;
+        primary_markers = []
+        for arg in args:
+            if arg.primary:
+                for marker in arg.markers:
+                    if marker in primary_markers:
+                        raise exceptions.DuplicatePrimaryMarkerError
+                    primary_markers.append(marker)
 
     @property
     def app(self) -> 'ConsoleApp':
@@ -47,6 +66,14 @@ class Responder():
                     return arg
         return None
 
+    @property
+    def primary_markers(self)->List[str]:
+        all_primary_markers = []
+        for arg in self.args:
+            if arg.primary:
+                all_primary_markers = all_primary_markers+arg.markers
+        return all_primary_markers
+
     def check_response_match(self, response: str) -> bool:
         '''Returns True/False to indicate if all of the primary
         argument markers are present in the response.
@@ -64,10 +91,9 @@ class Responder():
         return True
 
     def parse_response_to_args(self, response: str) -> Dict[str, Any]:
-        '''Converts a response into a dictionary of arguments
-        corresponding to those defined for this responder.
-        - Returns dict of all possible args, None if not present.
-        - Valueless are assigned True if present, False if not.
+        '''Returns dict of all possible arg names, with None as value if arg
+        was not present.
+        - Valueless arg values are True if present, False if not.
         - Sequentially passes values through any validation functions.
 
         Args:
@@ -76,30 +102,21 @@ class Responder():
         Returns:
             Dict[str, Any]: [description]
         '''
-        # Init checklist to record which args are present;
-        present_args = []
 
-        # Init the dict with None for each value, or
-        # False if arg is valueless;
-        parsed_args = {}
+        # Place to store arg names found in the response;
+        matched_arg_names: List[str] = []
+        # Final arg dict we will ultimately return;
+        parsed_args: Dict[str, Any] = {}
+
+        # Populate the values as None, and set valueless args as True/False at same time;
         for arg in self.args:
             if arg.is_valueless:
                 parsed_args[arg.name] = False
             else:
                 parsed_args[arg.name] = None
 
-        # Helper function to accumulate arg values;
-        def add_to_arg_value(name: str, word: str) -> None:
-            # Init the string if not started yet;
-            if parsed_args[name] == None:
-                parsed_args[name] = word
-            # Otherwise just add to it;
-            else:
-                parsed_args[name] = '{} {}'.format(parsed_args[name], word)
-
-        # Work through the response, word by word and
-        # pass values into the arg dict;
-        words = response.split()  # Convert the response to a list of words;
+        # Split the response into list so we can work through each word;
+        words = response.split()
 
         # Init the first arg name;
         if self.has_markerless_arg:
@@ -115,7 +132,7 @@ class Responder():
                 # If the word is a marker, update the current arg name and
                 # skip onto the next word;
                 if word in arg.markers:
-                    present_args.append(arg.name)
+                    matched_arg_names.append(arg.name)
                     if arg.is_valueless:
                         parsed_args[arg.name] = True
                         current_arg_name = None
@@ -125,18 +142,23 @@ class Responder():
                     break
             # Append value if not a marker, and an arg is collecting a value;
             if not current_arg_name == None and not is_marker:
-                add_to_arg_value(cast(str, current_arg_name), word)
+                if parsed_args[current_arg_name] == None:
+                    parsed_args[current_arg_name] = word
+                else:
+                    parsed_args[current_arg_name] = '{} {}'.format(
+                        parsed_args[current_arg_name], word)
         
+        # Run validation over each arg;
         for arg in self.args:
             # Only check args which were found;
-            if arg.name in present_args:
+            if arg.name in matched_arg_names:
                 # Check valued args all have values;
                 if not arg.is_valueless and parsed_args[arg.name] == None:
                     raise exceptions.ArgMissingValueError('{arg_name} requires a value.'.format(
                         arg_name=arg.name))
                 # If the value is not none, pass it through any validators assigned;
                 for validator in arg.validators:
-                    parsed_args[arg.name] = validator(parsed_args[arg.name])
+                    parsed_args[arg.name] = validator(parsed_args[arg.name])        
 
         return parsed_args
 
@@ -168,10 +190,18 @@ class ResponderArg():
         self._name = name
         self._markers = markers
         self._validators = validators
-
-        # TODO - Check that the default value passes the validation!
-
         self._default_value = default_value
+        
+        # Check the default value passes validation if it has
+        # been set;
+        if not default_value == None:
+            try:
+                for validator in self.validators:
+                    self._default_value = validator(self._default_value)
+            except exceptions.ResponseValidationError:
+                raise ValueError('The default value fails validation')
+
+        
 
     def check_marker_match(self, response: str) -> bool:
         '''Returns True/False to indicate if markers for this argument
@@ -332,7 +362,20 @@ class ConsoleAppComponent(ABC):
         '''
         # Check the states are valid;
         self._validate_states(states)
-        # TODO - Check there are no marker clashes within this responder;
+
+        # If this is an empty responder, check there are no others;
+        if len(args) == 0:
+            for responder in self._responders[self.current_state]:
+                if responder.is_argless_responder:
+                    raise exceptions.DuplicateEmptyResponderError
+
+        # Check the primary markers in this responder don't collide
+        # with any that have been configured in this state already;
+        for marker in self.get_primary_markers(states):
+            for arg in args:
+                if marker in arg.markers:
+                    raise exceptions.DuplicatePrimaryMarkerError
+
         # Create and stash the responder object in the correct states;
         r = Responder(self.app, func, args)
         for state in self.states:
@@ -437,10 +480,6 @@ class ConsoleAppComponent(ABC):
             states (List[Union[str, None]], optional): Component states from which the responder 
                 can be called. Defaults to [None].
         '''
-        # First check that there are no other empty responders;
-        for responder in self._responders[self.current_state]:
-            if responder.is_argless_responder:
-                raise exceptions.DuplicateEmptyResponderError
         # Go ahead and configure a responder without args;
         self.configure_responder(func, states)
 
@@ -489,6 +528,17 @@ class ConsoleAppComponent(ABC):
             if responder.has_markerless_arg:
                 return responder
         return None
+
+    def get_primary_markers(self, states:List[Union[str, None]]) ->List['str']:
+        '''Returns a list of all primary markers for the list of states 
+        specified.'''
+        all_markers = []
+        for state in states:
+            for responder in self._responders[state]:
+                for arg in responder.args:
+                    if arg.primary:
+                        all_markers = all_markers+arg.markers
+        return all_markers
 
 
 class ConsoleAppGuardComponent(ConsoleAppComponent):
