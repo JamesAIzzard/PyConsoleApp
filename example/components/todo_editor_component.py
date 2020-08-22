@@ -18,9 +18,9 @@ class TodoEditorComponent(ConsoleAppComponent):
         self.subject:'Todo'
         self.configure_printer(self.print_view)
         self.configure_responder(self.on_enter, args=[
-            self.configure_primary_arg(name='todo', markers=[None]),
+            self.configure_std_primary_arg(name='todo', markers=[None]),
             self.configure_valueless_option_arg(name='today', markers=['--today', '-t']),
-            self.configure_option_arg(name='importance', markers=['--importance', '-i'],
+            self.configure_std_option_arg(name='importance', markers=['--importance', '-i'],
                 validators=[todo_service.validate_importance_score], default_value=1)
         ])
 

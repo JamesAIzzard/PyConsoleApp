@@ -37,17 +37,17 @@ class TodoMenuComponent(pcap.ConsoleAppComponent):
         self.configure_printer(self.print_view)
         # Configure response behaviors;
         self.configure_responder(self.add_todo, args=[
-            self.configure_primary_arg(name='todo', markers=['-add', '-a']),
+            self.configure_std_primary_arg(name='todo', markers=['-add', '-a']),
             self.configure_valueless_option_arg(name='today', markers=['--today', '--t']),
-            self.configure_option_arg('importance', markers=['--importance', '--i'], default_value=1, 
+            self.configure_std_option_arg('importance', markers=['--importance', '--i'], default_value=1, 
                 validators=[pcap.builtin_validators.validate_integer, todo_service.validate_importance_score])  
         ])   
         self.configure_responder(self.remove_todo, args=[
-            self.configure_primary_arg('todo_num', markers=['-remove', '-r'], 
+            self.configure_std_primary_arg('todo_num', markers=['-remove', '-r'], 
                 validators=[self.todo_service.validate_todo_num])
         ])
         self.configure_responder(self.edit_todo, args=[
-            self.configure_primary_arg('todo_num', markers=['-edit', '-e'],
+            self.configure_std_primary_arg('todo_num', markers=['-edit', '-e'],
                 validators=[self.todo_service.validate_todo_num])
         ])
         self.configure_responder(self.wahoo, args=[
