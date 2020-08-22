@@ -313,7 +313,7 @@ class ConsoleApp():
                     if self._finished_responding: return
         
             # If no component has responded, then raise an exception;
-            if not matched_responder: 
+            if not matched_responder and not response.replace(' ', '') == '': 
                 raise ResponseValidationError('This response isn\'t recognised.')
 
         except pcap.ResponseValidationError as err:

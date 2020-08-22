@@ -341,6 +341,14 @@ class ConsoleAppComponent(ABC):
             if not state in self.states:
                 raise exceptions.StateNotFoundError
 
+    def change_state(self, state:str)->Callable:
+        # Check the state is real;
+        self._validate_states([state])
+        # Create the callable;
+        def state_changer():
+            self.current_state = state
+        return state_changer
+
     @property
     def _current_print_function(self) -> Callable:
         # Error if there isn't a print function stored against the current state;
@@ -396,7 +404,7 @@ class ConsoleAppComponent(ABC):
 
         # Create and stash the responder object in the correct states;
         r = Responder(self.app, func, args)
-        for state in self.states:
+        for state in states:
             self._responders[state].append(r)
 
     @staticmethod

@@ -8,12 +8,19 @@ from example import todo_service, todo
 if TYPE_CHECKING:
     from example.components.todo_editor_component import TodoEditorComponent
 
-_template = '''{todos}
+_home_template = '''{todos}
 -add, -a         [todo]       -> Add a todo.
     --today                   -> Flags as important.
     --importance [level: 1-3] -> Encodes todo as secret.
 -remove, -r      [number]     -> Remove a todo.
 -edit, -e        [number]     -> Edit a todo.
+-dash                         -> View todo dashboard.
+'''
+
+_dash_template = '''
+There are currently {todo_count} todo's.
+
+-home                         -> Back to home.
 '''
 
 def format_todo(number: int, todo: 'todo.Todo') -> str:
@@ -32,29 +39,38 @@ class TodoMenuComponent(pcap.ConsoleAppComponent):
 
     def __init__(self, app):
         super().__init__(app)
+
         self.todo_service = todo_service.TodoService()
-        # Configure print_function;
-        self.configure_printer(self.print_view)
-        # Configure response behaviors;
-        self.configure_responder(self.add_todo, args=[
+
+        self.configure_states(['home', 'dash'])
+
+        # Configure home state;
+        self.configure_printer(self.print_home_view, ['home'])
+        self.configure_responder(self.add_todo, states=['home'], args=[
             self.configure_std_primary_arg(name='todo', markers=['-add', '-a']),
             self.configure_valueless_option_arg(name='today', markers=['--today', '--t']),
             self.configure_std_option_arg('importance', markers=['--importance', '--i'], default_value=1, 
                 validators=[pcap.builtin_validators.validate_integer, todo_service.validate_importance_score])  
         ])   
-        self.configure_responder(self.remove_todo, args=[
+        self.configure_responder(self.remove_todo, states=['home'], args=[
             self.configure_std_primary_arg('todo_num', markers=['-remove', '-r'], 
                 validators=[self.todo_service.validate_todo_num])
         ])
-        self.configure_responder(self.edit_todo, args=[
+        self.configure_responder(self.edit_todo, states=['home'], args=[
             self.configure_std_primary_arg('todo_num', markers=['-edit', '-e'],
                 validators=[self.todo_service.validate_todo_num])
         ])
-        self.configure_responder(self.wahoo, args=[
-            self.configure_markerless_primary_arg(name='wahoo')
+        self.configure_responder(self.change_state('dash'), states=['home'], args=[
+            self.configure_valueless_primary_arg('dash', ['-dash'])
+        ])        
+
+        # Configure dashboard state;
+        self.configure_printer(self.print_dash_view, ['dash'])
+        self.configure_responder(self.change_state('home'), states=['dash'], args=[
+            self.configure_valueless_primary_arg('home', ['-home'])
         ])
 
-    def print_view(self):
+    def print_home_view(self):
         # Build the todo list;
         if not len(self.todo_service.todos):
             todos_menu = pcap.styles.fore("No TODO's added yet.\n", 'blue')
@@ -64,7 +80,7 @@ class TodoMenuComponent(pcap.ConsoleAppComponent):
                 todos_menu = todos_menu + format_todo(i+1, todo)
 
         # Build the main page detail;
-        output = _template.format(
+        output = _home_template.format(
             hr=self.app.fetch_component('single_hr_component').print(),
             todos=todos_menu
         )
@@ -72,6 +88,15 @@ class TodoMenuComponent(pcap.ConsoleAppComponent):
         # Return in the standard page;
         return self.app.fetch_component('standard_page_component').print(
             page_title="TODOs",
+            page_content=output
+        )
+
+    def print_dash_view(self):
+        output = _dash_template.format(
+            todo_count=len(self.todo_service.todos)
+        )
+        return self.app.fetch_component('standard_page_component').print(
+            page_title="Todo Dashboard",
             page_content=output
         )
 
@@ -89,6 +114,3 @@ class TodoMenuComponent(pcap.ConsoleAppComponent):
 
         # Head to the editor;
         self.app.goto('todos.edit')
-
-    def wahoo(self, args) -> None:
-        self.app.info_message = args['wahoo']
