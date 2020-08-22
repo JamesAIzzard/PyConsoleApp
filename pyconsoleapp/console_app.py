@@ -1,4 +1,5 @@
 import os, re, importlib
+from pyconsoleapp.exceptions import ResponseValidationError
 from importlib import util
 from typing import Callable, Dict, List, Optional, TYPE_CHECKING, cast
 if os.name == 'nt':
@@ -279,7 +280,8 @@ class ConsoleApp():
 
         Args:
             response (str): The user's response.
-        '''   
+        '''
+        matched_responder = False
         try:
             # If the response is empty, give each active component a chance to respond;
             if response.replace(' ', '') == '':
@@ -287,6 +289,7 @@ class ConsoleApp():
                     argless_responder = component.argless_responder
                     if argless_responder:
                         argless_responder()
+                        matched_responder = True
                         if self._finished_responding: return
             
             # Otherwise, give any marker-only responders a chance;
@@ -297,6 +300,7 @@ class ConsoleApp():
                         for responder in responders:
                             if responder.check_response_match(response):
                                 responder(response)
+                                matched_responder = True
                                 if self._finished_responding: return
            
             # Finally give each active component a chance to field a
@@ -305,8 +309,13 @@ class ConsoleApp():
                 markerless_responder = component.markerless_responder
                 if markerless_responder:
                     markerless_responder(response)
+                    matched_responder = True
                     if self._finished_responding: return
         
+            # If no component has responded, then raise an exception;
+            if not matched_responder: 
+                raise ResponseValidationError('This response isn\'t recognised.')
+
         except pcap.ResponseValidationError as err:
             if err.message: self.error_message = err.message
             return
