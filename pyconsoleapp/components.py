@@ -1,5 +1,6 @@
 from abc import ABC
 from inspect import signature
+from pyconsoleapp.exceptions import PyConsoleAppError
 from typing import Callable, Dict, List, Tuple, Any, Optional, Union, TYPE_CHECKING, cast
 
 from pyconsoleapp import ConsoleApp, exceptions
@@ -143,24 +144,27 @@ class Responder():
 
         # Now cycle through each word in the response;
         for word in words:
-            # Check for matches against each arg;
+            # Check if the word is a marker;
             is_marker = False
             for arg in self.args:
-                # If the word is a marker, update the current arg name and
-                # skip onto the next word;
                 if word in arg.markers:
                     matched_arg_names.append(arg.name)
+                    current_arg_name = arg.name
+                    is_marker = True
+                    # If the arg is valueless, adjust value to indicate it was found;
                     if arg.is_valueless:
                         parsed_args[arg.name] = True
                         current_arg_name = None
-                    else:
-                        current_arg_name = arg.name
-                    is_marker = True
-                    break
+                    break  # Found, so stop searching args.
             # Append value if not a marker, and an arg is collecting a value;
-            if not current_arg_name == None and not is_marker:
+            if not is_marker:
+                # If we are getting a value before a marker, it is an orphan;
+                if current_arg_name == None:
+                    raise exceptions.OrphanValueError('Unexpected argument: {}'.format(word))
+                # If the word is the first for this value, init;
                 if parsed_args[current_arg_name] == None:
                     parsed_args[current_arg_name] = word
+                # Otherwise append;
                 else:
                     parsed_args[current_arg_name] = '{} {}'.format(
                         parsed_args[current_arg_name], word)

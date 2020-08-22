@@ -157,7 +157,8 @@ class TestParseResponseToArgs(TestCase):
     def test_missing_primary_markerless_raises_exception(self):
         r = Responder(self.app, Callable, args=[
             self.test_component.configure_markerless_primary_arg('alpha'),
-            self.test_component.configure_std_primary_arg('beta', ['-beta', '-b'])
+            self.test_component.configure_std_primary_arg('beta', ['-beta', '-b']),
+            self.test_component.configure_valueless_option_arg('gamma', ['-gamma'])
         ])
         with self.assertRaises(exceptions.ArgMissingValueError):
             args = r.parse_response_to_args('')
@@ -215,4 +216,31 @@ class TestParseResponseToArgs(TestCase):
         ])
         with self.assertRaises(exceptions.OrphanValueError):
             args = r.parse_response_to_args('-alpha a-value -beta b-value')        
+
 # -------------------------------------------------------------------------------------            
+
+    def test_valueless_option_arg_gets_true(self):
+        r = Responder(self.app, Callable, args=[
+            self.test_component.configure_valueless_primary_arg('alpha', ['-alpha']),
+            self.test_component.configure_valueless_option_arg('beta', ['-beta'])
+        ])
+        args = r.parse_response_to_args('-alpha -beta')
+        self.assertEqual(args['alpha'], True)
+        self.assertEqual(args['beta'], True)
+
+    def test_missing_valueless_option_arg_gets_false(self):
+        r = Responder(self.app, Callable, args=[
+            self.test_component.configure_valueless_primary_arg('alpha', ['-alpha']),
+            self.test_component.configure_valueless_option_arg('beta', ['-beta'])
+        ])
+        args = r.parse_response_to_args('-alpha')
+        self.assertEqual(args['alpha'], True)
+        self.assertEqual(args['beta'], False)       
+
+    def test_orphan_value_for_valueless_option_arg_raises_exception(self):
+        r = Responder(self.app, Callable, args=[
+            self.test_component.configure_valueless_primary_arg('alpha', ['-alpha']),
+            self.test_component.configure_valueless_option_arg('beta', ['-beta'])
+        ])
+        with self.assertRaises(exceptions.OrphanValueError):
+            args = r.parse_response_to_args('-alpha -beta b-value')  
