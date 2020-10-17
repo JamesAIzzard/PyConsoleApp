@@ -8,7 +8,7 @@ class TitleBarComponent(ConsoleAppComponent):
 
     def print_view(self):
         output = '{app_name} | {route}\n'.format(
-            app_name=styles.weight(self.app.name, 'bright'),
+            app_name=styles.weight(self.app._name, 'bright'),
             route=styles.fore(self.app.route.replace('.', '>'), 'blue')
         )
         return output

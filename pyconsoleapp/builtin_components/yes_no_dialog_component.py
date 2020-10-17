@@ -1,41 +1,44 @@
-from abc import abstractmethod
+import abc
+from typing import TYPE_CHECKING
 
-from pyconsoleapp import ConsoleAppComponent
+import pyconsoleapp as pcap
+from pyconsoleapp import ConsoleAppComponent, PrimaryArg
+
+if TYPE_CHECKING:
+    from pyconsoleapp import ConsoleApp
+
+_view_template = '''
+{message}
+Yes | -y, -yes
+No  | -n, -no
+'''
 
 
-class YesNoDialogComponent(ConsoleAppComponent):
+class YesNoDialogComponent(ConsoleAppComponent, abc.ABC):
 
-    def __init__(self, app):
+    def __init__(self, message: str, app: 'ConsoleApp'):
         super().__init__(app)
-        self.message: str
-        self.configure_printer(self.print_view)
-        self.configure_responder(self.on_yes, args=[
-            self.configure_valueless_primary_arg(name='yes', markers=['-yes', '-y'])
-        ])
-        self.configure_responder(self.on_no, args=[
-            self.configure_valueless_primary_arg(name='no', markers=['-no', '-n'])
+        self._message: str = message
+        self.configure_state('main', self._print_dialog, responders=[
+            self.configure_responder(self._on_yes, args=[
+                PrimaryArg('on_yes', has_value=False, markers=['-y', '-yes'])]),
+            self.configure_responder(self._on_no, args=[
+                PrimaryArg('on_no', has_value=False, markers=['-n', '-no'])])
         ])
 
-    def print_view(self):
-        # Define the template;
-        template = '''
-        {message}
-        -yes, -y    -> Yes
-        -no, -n     -> No
-        '''    
+    @property
+    def message(self) -> str:
+        return self._message
 
-        # Fill the template and return;
-        output = template.format(
-            message=self.message
+    def _print_dialog(self) -> str:
+        return self.app.get_component(pcap.StandardPageComponent).print_view(
+            page_content=_view_template.format(message=self.message)
         )
-        output = self.app.fetch_component(
-            'standard_page_component').print(content=output)
-        return output
 
-    @abstractmethod
-    def on_yes(self):
-        pass
+    @abc.abstractmethod
+    def _on_yes(self) -> None:
+        raise NotImplementedError
 
-    @abstractmethod
-    def on_no(self):
-        pass
+    @abc.abstractmethod
+    def _on_no(self) -> None:
+        raise NotImplementedError

@@ -1,0 +1,42 @@
+from typing import List
+
+import todo_app
+from todo_app.todo import Todo
+
+todos: List['Todo'] = []
+
+
+def validate_todo_num(num) -> int:
+    """Validates and returns the todo_ number."""
+    try:
+        num = int(num)
+    except ValueError:
+        raise todo_app.exceptions.InvalidTodoNumError
+    if num > len(todos):
+        raise todo_app.exceptions.InvalidTodoNumError
+    return num
+
+
+def validate_importance_score(score) -> None:
+    """Validates and returnes the importance score."""
+    try:
+        score = int(score)
+    except ValueError:
+        raise todo_app.exceptions.InvalidImportanceScore
+    if score < 1 or score > 3:
+        raise todo_app.exceptions.InvalidImportanceScore
+
+
+def add_todo(text: str, today: bool, importance: int) -> None:
+    """Instantiates and adds a todo_ to the list."""
+    todos.append(Todo(text=text, today=today, importance=importance))
+
+
+def remove_todo(todo_num: int) -> None:
+    """Removes a the todo_ associated with the specifed number."""
+    todos.pop(todo_num - 1)
+
+
+def fetch_todo(self, todo_num: int) -> 'Todo':
+    """Returns the _todo at the specified index."""
+    return todos[todo_num - 1]

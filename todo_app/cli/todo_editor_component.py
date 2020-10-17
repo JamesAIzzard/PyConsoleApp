@@ -2,13 +2,13 @@ from typing import TYPE_CHECKING
 
 from pyconsoleapp import ConsoleAppComponent
 
-from example import todo_service
+from todo_app import service
 
 if TYPE_CHECKING:
-    from example.todo import Todo
+    from todo_app.todo import Todo
 
 _template = '''
-Update the todo and press enter.
+Update the todo_item and press enter.
 '''
 
 class TodoEditorComponent(ConsoleAppComponent):
@@ -18,14 +18,14 @@ class TodoEditorComponent(ConsoleAppComponent):
         self.subject:'Todo'
         self.configure_printer(self.print_view)
         self.configure_responder(self.on_enter, args=[
-            self.configure_std_primary_arg(name='todo', markers=[None]),
+            self.configure_std_primary_arg(name='todo_item', markers=[None]),
             self.configure_valueless_option_arg(name='today', markers=['--today', '-t']),
             self.configure_std_option_arg(name='importance', markers=['--importance', '-i'],
-                validators=[todo_service.validate_importance_score], default_value=1)
+                                          validators=[service.validate_importance_score], default_value=1)
         ])
 
     def print_view(self):
-        output = self.app.fetch_component('standard_page_component').print(
+        output = self.app._get_cached_component('standard_page_component').print(
             page_title='Todo Editor:',
             page_content=_template
         )
@@ -33,8 +33,8 @@ class TodoEditorComponent(ConsoleAppComponent):
 
     def on_enter(self, args):
         # Update the response;
-        self.subject.text = args['todo']
+        self.subject.text = args['todo_item']
         self.subject.today = args['today']
         self.subject.importance = args['importance']
         # Head back to the menu;
-        self.app.goto('todos')
+        self.app.go_to('todos')

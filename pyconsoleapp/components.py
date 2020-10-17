@@ -1,22 +1,26 @@
 from abc import ABC
 from inspect import signature
-from pyconsoleapp.exceptions import PyConsoleAppError
-from typing import Callable, Dict, List, Tuple, Any, Optional, Union, TYPE_CHECKING, cast
+from typing import Callable, Dict, List, Tuple, Any, Optional, Union, TYPE_CHECKING, TypeVar
 
 from pyconsoleapp import ConsoleApp, exceptions
 
 if TYPE_CHECKING:
     from pyconsoleapp import ConsoleApp
 
+T = TypeVar('T')
 
-class Responder():
+
+class Responder:
     def __init__(self,
                  app: 'ConsoleApp',
                  func: Callable,
-                 args: List['ResponderArg']):
+                 args: List['ResponderArg'] = None):
         self._app = app
         self._func = func
         self._args = args
+
+        if args is None:
+            args = []
 
         # Check there are not multiple markerless args within this responder;
         markerless_found = False
@@ -41,7 +45,7 @@ class Responder():
             if arg.primary:
                 for marker in arg.markers:
                     if marker in primary_markers:
-                        raise exceptions.DuplicatePrimaryMarkerError
+                        raise exceptions.IdenticalPrimaryMarkersError
                     primary_markers.append(marker)
 
     @property
@@ -79,11 +83,11 @@ class Responder():
         all_primary_markers = []
         for arg in self.args:
             if arg.primary:
-                all_primary_markers = all_primary_markers+arg.markers
+                all_primary_markers = all_primary_markers + arg.markers
         return all_primary_markers
 
     def check_response_match(self, response: str) -> bool:
-        '''Returns True/False to indicate if all of the primary
+        """Returns True/False to indicate if all of the primary
         argument markers are present in the response.
 
         Args:
@@ -91,7 +95,7 @@ class Responder():
 
         Returns:
             bool: To indicate match or no match.
-        '''
+        """
         for arg in self.args:
             if arg.primary:
                 if not arg.check_marker_match(response):
@@ -99,7 +103,7 @@ class Responder():
         return True
 
     def parse_response_to_args(self, response: str) -> Dict[str, Any]:
-        '''Returns dict of all possible arg names, with None as value if arg
+        """Returns dict of all possible arg names, with None as value if arg
         was not present.
         - Valueless arg values are True if present, False if not.
         - Sequentially passes values through any validation functions.
@@ -109,7 +113,7 @@ class Responder():
 
         Returns:
             Dict[str, Any]: [description]
-        '''
+        """
 
         # First check that all primary arg markers are present;
         for arg in self.args:
@@ -128,7 +132,7 @@ class Responder():
             if arg.is_valueless:
                 parsed_args[arg.name] = False
             else:
-                if not arg.default_value == None:
+                if arg.default_value is not None:
                     parsed_args[arg.name] = arg.default_value
                 else:
                     parsed_args[arg.name] = None
@@ -136,7 +140,7 @@ class Responder():
         # Split the response into list so we can work through each word;
         words = response.split()
 
-        # Init the first arg name;
+        # Init the first arg _name;
         if self.has_markerless_arg:
             current_arg_name = self.markerless_arg.name
         else:
@@ -159,10 +163,10 @@ class Responder():
             # Append value if not a marker, and an arg is collecting a value;
             if not is_marker:
                 # If we are getting a value before a marker, it is an orphan;
-                if current_arg_name == None:
+                if current_arg_name is None:
                     raise exceptions.OrphanValueError('Unexpected argument: {}'.format(word))
                 # If the word is the first for this value, init;
-                if parsed_args[current_arg_name] == None:
+                if parsed_args[current_arg_name] is None:
                     parsed_args[current_arg_name] = word
                 # Otherwise append;
                 else:
@@ -172,11 +176,11 @@ class Responder():
         # Run validation over each arg;
         for arg in self.args:
             # Flag any None primary values;
-            if arg.primary and parsed_args[arg.name] == None:
+            if arg.primary and parsed_args[arg.name] is None:
                 raise exceptions.ArgMissingValueError('{arg_name} requires a value.'.format(
                     arg_name=arg.name))
             # If the value is not none, pass it through any validators assigned;
-            if not parsed_args[arg.name] == None:
+            if not parsed_args[arg.name] is None:
                 for validator in arg.validators:
                     parsed_args[arg.name] = validator(parsed_args[arg.name])
 
@@ -197,14 +201,36 @@ class Responder():
             self._func()
 
 
-class ResponderArg():
+def PrimaryArg(arg_name: str, has_value: bool, markers: Optional[List[str]] = None,
+               validators: List[Callable] = None, default_value=None) -> 'ResponderArg':
+    if markers is None:
+        markers = [None]
+    if validators is None:
+        validators = []
+    return ResponderArg(primary=True, valueless=not has_value, name=arg_name, markers=markers, validators=validators,
+                        default_value=default_value)
+
+
+def OptionArg(arg_name: str, has_value: bool, markers: List[str] = None,
+              validators: List[Callable] = None, default_value=None) -> 'ResponderArg':
+    if markers is None:
+        markers = []
+    if validators is None:
+        validators = []
+    return ResponderArg(primary=False, valueless=not has_value, name=arg_name, markers=markers, validators=validators,
+                        default_value=default_value)
+
+
+class ResponderArg:
     def __init__(self,
                  primary: bool,
                  valueless: bool,
                  name: str,
                  markers: List[Union[str, None]],
-                 validators: List[Callable] = [],
+                 validators=None,
                  default_value: Any = None):
+        if validators is None:
+            validators = []
         self._primary = primary
         self._valueless = valueless
         self._name = name
@@ -214,7 +240,7 @@ class ResponderArg():
 
         # Check the default value passes validation if it has
         # been set;
-        if not default_value == None:
+        if default_value is not None:
             try:
                 for validator in self.validators:
                     self._default_value = validator(self._default_value)
@@ -222,7 +248,7 @@ class ResponderArg():
                 raise ValueError('The default value fails validation')
 
     def check_marker_match(self, response: str) -> bool:
-        '''Returns True/False to indicate if markers for this argument
+        """Returns True/False to indicate if markers for this argument
         are present in the response.
 
         Args:
@@ -230,10 +256,10 @@ class ResponderArg():
 
         Returns:
             bool: To indicate if a marker was found.
-        '''
+        """
         chunked_response = response.split()
         for marker in self.markers:
-            if marker in chunked_response or marker == None:
+            if marker in chunked_response or marker is None:
                 return True
         return False
 
@@ -279,46 +305,67 @@ class ConsoleAppComponent(ABC):
         self._printers: Dict[Union[None, str], Callable] = {}
         # Init state storage;
         self._states: List[Union[None, str]] = [None]
-        self._current_state: Union[None, str] = self._states[0]
+        self._current_state: Union[None, str] = None
+        self._state_component_map: Dict[str, 'ConsoleAppComponent'] = {}
 
     def __getattribute__(self, name: str) -> Any:
-        '''Intercepts the print command and adds the component to
-        the app's list of active components.
+        """Intercepts the print command and adds the component to
+        the app's list of active cli.
 
         Arguments:
-            name {str} -- Name of the attribute being accessed.
+            _name -- Name of the attribute being accessed.
 
         Returns:
-            Any -- The attribute which was requested.
-        '''
+            The attribute which was requested.
+        """
         # If the print method was called;
         if name == 'print':
-            # Add this component to the active components list
+            # Add this component to the active cli list
             self.app.activate_component(self)
         # Return whatever was requested;
         return super().__getattribute__(name)
 
     @property
     def name(self) -> str:
-        '''Returns the name of the component.
-
-        Returns:
-            str: Component name.
-        '''
         return self.__class__.__name__
 
     @property
     def current_state(self) -> Union[None, str]:
-        return self._current_state
+        if self._current_state is None:
+            self._current_state = self.states[0]
+            return self._current_state
+        else:
+            return self._current_state
 
     @current_state.setter
     def current_state(self, value: Union[None, str]) -> None:
         self._validate_states([value])
         self._current_state = value
 
+    def change_state(self, state_name: str) -> None:
+        """Changes the component's current state."""
+        self._validate_states([state_name])
+        self._current_state = state_name
+
     @property
     def states(self) -> List[Union[None, str]]:
         return self._states
+
+    def _assign_state_to_component(self, states: List[str], component: T) -> T:
+        for state in states:
+            if not isinstance(component, ConsoleAppComponent):
+                raise ValueError('Not a component!')
+            self._state_component_map[state] = component
+            if state not in self._states:
+                self._states.append(state)
+        return component
+
+    @property
+    def state_component(self) -> 'ConsoleAppComponent':
+        if self.current_state not in self._state_component_map:
+            return self
+        else:
+            return self._state_component_map[self.current_state]
 
     def configure_states(self, states: List[Union[None, str]]) -> None:
         # Prevent default being overwritten by no states;
@@ -338,22 +385,24 @@ class ConsoleAppComponent(ABC):
     def _validate_states(self, states: List[Union[None, str]]):
         # Check that each state in the list has been configured;
         for state in states:
-            if not state in self.states:
+            if state not in self.states:
                 raise exceptions.StateNotFoundError
 
-    def change_state(self, state:str)->Callable:
+    def make_state_changer(self, state: str) -> Callable:
         # Check the state is real;
         self._validate_states([state])
+
         # Create the callable;
         def state_changer():
             self.current_state = state
+
         return state_changer
 
     @property
     def _current_print_function(self) -> Callable:
         # Error if there isn't a print function stored against the current state;
-        if not self.current_state in self._printers.keys():
-            raise exceptions.NoPrintFunctionError
+        if self.current_state not in self._printers.keys():
+            raise exceptions.NoPrintFunctionError('{} has no print function.'.format(self.__class__.__name__))
         # Return the relevant function;
         return self._printers[self.current_state]
 
@@ -363,20 +412,43 @@ class ConsoleAppComponent(ABC):
     def before_print(self) -> None:
         pass
 
+    def _before_print(self) -> None:
+        pass
+
+    def _on_load(self) -> None:
+        pass
+
     def configure_printer(self,
                           func: Callable,
-                          states: List[Union[str, None]] = [None]) -> None:
+                          states=None) -> None:
         # Check all the states;
+        if states is None:
+            states = [None]
         self._validate_states(states)
         # Assign the print function to specified states;
         for state in states:
             self._printers[state] = func
 
+    def configure_state(self, state_name: str, print_function: Callable, responders: List[Responder]) -> None:
+        # Add the state to the state list, resetting from start value if rqd. Also reset responders list;
+        if self.states == [None]:
+            self._states = []
+            self._responders = {}
+        self._states = self._states + [state_name]
+        # Add the printer;
+        self._printers[state_name] = print_function
+        # Init the state entry on the responders dict;
+        if state_name not in self._responders:
+            self._responders[state_name] = []
+        # Add the responders;
+        for responder in responders:
+            self._responders[state_name].append(responder)
+
     def configure_responder(self,
                             func: Callable,
-                            states: List[Union[str, None]] = [None],
-                            args: List['ResponderArg'] = []) -> None:
-        '''Generic responder configuration. 
+                            states=None,
+                            args=None) -> 'Responder':
+        """Generic responder configuration.
 
         Args:
             func (Callable): Handler function to execute when the responder is called.
@@ -385,9 +457,17 @@ class ConsoleAppComponent(ABC):
             args (List[ResponderArg]): The responder args associated with the responder.
                 The contents of these args are passed to the function as a dict, when the
                 responder is called. Defaults to None.
-        '''
+        """
         # Check the states are valid;
-        self._validate_states(states)
+        if args is None:
+            args = []
+        if states is None:
+            states = [None]
+
+        # Nasty hack to make the new notation work;
+        if states == [None] and None not in self.states:
+            states = ['_temp']
+            self._responders['_temp'] = []
 
         # If this is an empty responder, check there are no others;
         if len(args) == 0:
@@ -395,129 +475,154 @@ class ConsoleAppComponent(ABC):
                 if responder.is_argless_responder:
                     raise exceptions.DuplicateEmptyResponderError
 
-        # Check the primary markers in this responder don't collide
-        # with any that have been configured in this state already;
-        for marker in self.get_primary_markers(states):
-            for arg in args:
-                if marker in arg.markers:
-                    raise exceptions.DuplicatePrimaryMarkerError
+        # Check the primary markers in this responder aren't identical to another set in this state;
+        new_primary_markers = []
+        for arg in args:
+            if arg.primary:
+                for marker in arg.markers:
+                    new_primary_markers.append(marker)
+        if not states == ['_temp']:  # More of the same nasty hack to allow the new configuration method;
+            for s in states:
+                respdrs = self._responders[s]
+                for respdr in respdrs:
+                    p_args = respdr.primary_markers
+                    if new_primary_markers == p_args:
+                        raise exceptions.IdenticalPrimaryMarkersError(str(p_args))
 
         # Create and stash the responder object in the correct states;
         r = Responder(self.app, func, args)
+
+        # Assign the responders to the states;
         for state in states:
             self._responders[state].append(r)
 
+        return r
+
     @staticmethod
     def configure_std_primary_arg(name: str,
-                                  markers: List[Union[str, None]] = [],
-                                  validators: List[Callable] = [],
+                                  markers=None,
+                                  validators=None,
                                   default_value: Any = None) -> 'ResponderArg':
-        '''Configures a primary argument object, describing how input is collected
+        """Configures a primary argument object, describing how input is collected
         and validated against an argument to be passed to the handler function.
         'Primary' indicates the argument must be present for the responder to
-        match and be called. In the case where the name parameter == None, the argument
+        match and be called. In the case where the _name parameter == None, the argument
         will not contribute values to the arg dict passed to the handler function.
 
         Returns:
             ResponderArg
-        '''
+        """
+        if validators is None:
+            validators = []
+        if markers is None:
+            markers = []
         return ResponderArg(primary=True, valueless=False, name=name, markers=markers,
                             validators=validators, default_value=default_value)
 
     @staticmethod
     def configure_markerless_primary_arg(name: str,
-                                         validators: List[Callable] = [],
+                                         validators=None,
                                          default_value: Any = None) -> 'ResponderArg':
-        '''Configures a primary argument object without a marker, i.e one whose value
+        """Configures a primary argument object without a marker, i.e one whose value
         is the text entered before the first marker found in the response.
 
         Returns:
             ResponderArg
-        '''
+        """
+        if validators is None:
+            validators = []
         return ResponderArg(primary=True, valueless=False, markers=[None],
                             name=name, validators=validators, default_value=default_value)
 
     @staticmethod
     def configure_valueless_primary_arg(name: str,
                                         markers: List[str]) -> 'ResponderArg':
-        '''Configures a primary argument object which only looks for a marker and no
+        """Configures a primary argument object which only looks for a marker and no
         additional arguments.
 
         Returns:
             ResponderArg
-        '''
+        """
         if None in markers:
             raise ValueError('Valueless args cannot have None as a marker')
         return ResponderArg(primary=True, valueless=True,
-                            markers=cast(List[Union[str, None]], markers), name=name)
+                            markers=markers, name=name)
 
     @staticmethod
     def configure_std_option_arg(name: str,
-                                 markers: List[Union[str, None]] = [],
-                                 validators: List[Callable] = [],
+                                 markers=None,
+                                 validators=None,
                                  default_value: Any = None) -> 'ResponderArg':
-        '''Configures an optional argument object, describing how input is collected
+        """Configures an optional argument object, describing how input is collected
         and validated against an argument to be passed to the handler function.
         'Option' indicates the argument must be present for the responder to
-        match and be called. In the case where the name parameter == None, the argument
+        match and be called. In the case where the _name parameter == None, the argument
         will not contribute values to the arg dict passed to the handler function.
 
         Returns:
             ResponderArg
-        '''
+        """
+        if validators is None:
+            validators = []
+        if markers is None:
+            markers = []
         return ResponderArg(primary=False, valueless=False, name=name, markers=markers,
                             validators=validators, default_value=default_value)
 
     @staticmethod
     def configure_markerless_option_arg(name: str,
-                                        validators: List[Callable] = [],
+                                        validators=None,
                                         default_value: Any = None) -> 'ResponderArg':
-        '''Configures an option argument object without a marker, i.e one whose value
+        """Configures an option argument object without a marker, i.e one whose value
         is the text entered before the first marker found in the response.
 
         Returns:
             ResponderArg
-        '''
+        """
+        if validators is None:
+            validators = []
         return ResponderArg(primary=False, valueless=False, markers=[None],
                             name=name, validators=validators, default_value=default_value)
 
     @staticmethod
     def configure_valueless_option_arg(name: str,
                                        markers: List[str]) -> 'ResponderArg':
-        '''Configures an option argument object which only looks for a marker and no
+        """Configures an option argument object which only looks for a marker and no
         additional arguments.
 
         Returns:
             ResponderArg
-        '''
+        """
         if None in markers:
             raise ValueError('Valueless args cannot have None as a marker')
         return ResponderArg(primary=False, valueless=True,
-                            markers=cast(List[Union[str, None]], markers), name=name)
+                            markers=markers, name=name)
 
     def configure_argless_responder(self,
                                     func: Callable,
-                                    states: List[Union[str, None]] = [None]) -> None:
-        '''A shortcut method to configure a responder to fire when the
+                                    states=None) -> None:
+        """A shortcut method to configure a responder to fire when the
         user presses enter without entering anything.
 
         Args:
             func (Callable): Function to call when responder is matched.
-            states (List[Union[str, None]], optional): Component states from which the responder 
+            states (List[Union[str, None]], optional): Component states from which the responder
                 can be called. Defaults to [None].
-        '''
+        """
+        if states is None:
+            states = [None]
         # Go ahead and configure a responder without args;
         self.configure_responder(func, states)
 
     @property
     def argless_responder(self) -> Optional['Responder']:
-        '''Returns the argless responder assigned to the component,
+        """Returns the argless responder assigned to the component,
         if it exists. If there is no argless responder configured,
         None is returned.
 
         Returns:
             Responder | None
-        '''
+        """
         for responder in self._responders[self.current_state]:
             if responder.is_argless_responder:
                 return responder
@@ -525,12 +630,12 @@ class ConsoleAppComponent(ABC):
 
     @property
     def marker_responders(self) -> List['Responder']:
-        '''Returns a list of responders whose arguments are
+        """Returns a list of responders whose arguments are
         each assigned a marker.
 
         Returns:
             List[Responder]
-        '''
+        """
         marker_responders = []
         for responder in self._responders[self.current_state]:
             if not responder.is_argless_responder and not responder.has_markerless_arg:
@@ -539,7 +644,7 @@ class ConsoleAppComponent(ABC):
 
     @property
     def markerless_responder(self) -> Optional['Responder']:
-        '''Returns the markerless responder assigned to the component,
+        """Returns the markerless responder assigned to the component,
         if it exists. If there is no markerless responder configured,
         None is returned.
 
@@ -549,27 +654,39 @@ class ConsoleAppComponent(ABC):
 
         Returns:
             Responder | None
-        '''
+        """
         for responder in self._responders[self.current_state]:
             if responder.has_markerless_arg:
                 return responder
         return None
 
     def get_primary_markers(self, states: List[Union[str, None]]) -> List['str']:
-        '''Returns a list of all primary markers for the list of states 
-        specified.'''
+        """Returns a list of all primary markers for the list of states
+        specified."""
         all_markers = []
         for state in states:
             for responder in self._responders[state]:
                 for arg in responder.args:
                     if arg.primary:
-                        all_markers = all_markers+arg.markers
+                        all_markers = all_markers + arg.markers
         return all_markers
 
 
-class ConsoleAppGuardComponent(ConsoleAppComponent):
+class ConsoleAppGuardComponent(ConsoleAppComponent, ABC):
     def __init__(self, app: 'ConsoleApp'):
         super().__init__(app)
+        self._show_condition = None
+
+    @property
+    def show_condition(self) -> Optional[Callable[[], bool]]:
+        return self._show_condition
+
+    @property
+    def should_show(self) -> bool:
+        return self._show_condition()
+
+    def _configure(self, show_condition: Callable[[], bool]):
+        self._show_condition = show_condition
 
     def clear_self(self):
         def search_and_clear_guard_map(guard_map):
@@ -583,6 +700,7 @@ class ConsoleAppGuardComponent(ConsoleAppComponent):
                     rt_to_clear = route
             if rt_to_clear:
                 del guard_map[rt_to_clear]
+
         # Search and clear entrance & exit maps;
         search_and_clear_guard_map(self.app._route_entrance_guard_map)
         search_and_clear_guard_map(self.app._route_exit_guard_map)
