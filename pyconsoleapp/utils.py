@@ -8,12 +8,19 @@ from pyconsoleapp import configs
 T = TypeVar('T')
 
 
-def wrap_text(text: str, char_width: Optional[int] = None) -> str:
+def wrap_text(text: str, num_chars: Optional[int] = None) -> str:
     """Wraps the text to the specified width (number of chars). If no width is specified, the text is
     wrapped to the console width defined in the configs."""
-    if char_width is None:
-        char_width = configs.terminal_width_chars
-    return fill(text, char_width)
+    if num_chars is None:
+        num_chars = configs.terminal_width_chars
+    return fill(text, num_chars)
+
+
+def truncate_text(text: str, num_chars: int, end_chars: str = '...') -> str:
+    """Truncates the text to the specified number of characters (minus length of end chars) and adds the end chars."""
+    if len(text) < num_chars - len(end_chars):
+        end_chars = ''
+    return text[:num_chars - len(end_chars)] + end_chars
 
 
 def sentence_case(text: str) -> str:
@@ -31,6 +38,8 @@ def make_numbered_map(list_to_map: List[T], start_num: int = 1) -> Dict[int, T]:
 
 
 def score_similarity(words_to_score: List[str], search_term: str) -> Dict[str, float]:
+    """Returns a dictionary of the each word in the original list, coupled with a similarity score indicating
+    how similar each word is to the similarity term."""
     scores = {}
     for word in words_to_score:
         scores[word] = SequenceMatcher(None, search_term, word).ratio()
@@ -38,5 +47,6 @@ def score_similarity(words_to_score: List[str], search_term: str) -> Dict[str, f
 
 
 def get_n_best_matches(words_to_search: List[str], search_term: str, num_results: int) -> List[str]:
+    """Returns a list of n words most similar to the search term."""
     all_scores = score_similarity(words_to_search, search_term)
     return nlargest(num_results, all_scores, key=all_scores.get)

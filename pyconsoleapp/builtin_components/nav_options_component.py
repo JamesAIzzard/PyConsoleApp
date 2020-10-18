@@ -1,26 +1,29 @@
-from pyconsoleapp.components import ConsoleAppComponent
+from pyconsoleapp import Component, Responder, PrimaryArg, OptionalArg
 
-_template = '''Navigate Back   | -back, -b
-Quit            | -quit, -q
+_template = u'''Navigate Back   \u2502 -back, -b
+Quit            \u2502 -quit, -q
 '''
 
-class NavOptionsComponent(ConsoleAppComponent):
-    
-    def __init__(self, app):
-        super().__init__(app)
-        self.configure_printer(self.print_view)
-        self.configure_responder(self.on_back, args=[
-            self.configure_valueless_primary_arg(name='back', markers=['-back', '-b'])
-        ])
-        self.configure_responder(self.on_quit, args=[
-            self.configure_valueless_primary_arg(name='quit', markers=['-quit', '-q'])
+
+class NavOptionsComponent(Component):
+
+    def __init__(self, **kwds):
+        super().__init__(**kwds)
+        self._configure_state('main', responders=[
+            Responder(self._on_back, args=[PrimaryArg('back flag', markers=['-back', '-b'])]),
+            Responder(self._on_quit, args=[PrimaryArg('quit flag', markers=['-quit', '-q'])])
         ])
 
-    def print_view(self):
+    @staticmethod
+    def print_view(self) -> str:
         return _template
 
-    def on_back(self)->None:
-        self.app.go_to('..')
+    def _on_back(self) -> None:
+        route_list = self._app.current_route.split('.')
+        if len(route_list) > 1:
+            route_list.pop(-1)
+            back_route = '.'.join(route_list)
+            self._app.go_to(back_route)
 
-    def on_quit(self)->None:
-        self.app.quit()
+    def _on_quit(self) -> None:
+        self._app.quit()

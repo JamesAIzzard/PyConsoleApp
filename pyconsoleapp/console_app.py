@@ -88,7 +88,7 @@ class ConsoleApp:
         """Configures a new application root and assigns its component."""
         if route in self._route_component_map:
             raise exceptions.RouteAlreadyExistsError
-        self._route_component_map[route] = component_class(self)
+        self._route_component_map[route] = component_class(app=self)
 
     def _validate_route(self, route: str):
         if route not in self._route_component_map:
@@ -96,7 +96,7 @@ class ConsoleApp:
 
     def _historise_route(self, route: str) -> None:
         # Save the current route to the history;
-        self._route_history.append(self.current_route)
+        self._route_history.append(route)
         # Make sure the history doesn't get too long;
         while len(self._route_history) > configs.route_history_length:
             self._route_history.pop(0)
@@ -107,10 +107,14 @@ class ConsoleApp:
         component = self._route_component_map[route]
         return component.get_state_component(state=state)
 
-    def activate_component(self, component: 'Component') -> None:
-        """Activates the component instance."""
-        if component not in self._active_components:
-            self._active_components.append(component)
+    def activate_components(self, components: List['Component']) -> None:
+        """Adds the list of components to the active components list."""
+        self._active_components.extend(components)
+        # Pass the list through set() to remove any duplicates;
+        self._active_components = list(set(self._active_components))
+
+    def activate_popup_component(self, popup: 'PopupComponent') -> None:
+        self._active_popup_ = popup
 
     def _clear_active_components(self) -> None:
         """Clears all activated cli."""
@@ -119,6 +123,7 @@ class ConsoleApp:
 
     @property
     def _current_component(self) -> 'Component':
+        """Returns the component associated with the current app route, or a popup if one is active."""
         popup = self._active_popup
         if popup is not None:
             return popup
@@ -135,9 +140,6 @@ class ConsoleApp:
             return active_guard
         else:
             return None
-
-    def activate_popup(self, popup: 'PopupComponent') -> None:
-        self._active_popup_ = popup
 
     def _get_active_guard(self) -> Optional['GuardComponent']:
         """Returns the active guard if exists, otherwise returns None."""
@@ -192,7 +194,7 @@ class ConsoleApp:
             # If the response is empty, give each active component a chance to respond;
             if response.replace(' ', '') == '':
                 for component in self._active_components:
-                    argless_responder = component.argless_responder
+                    argless_responder = component.current_argless_responder
                     if argless_responder:
                         argless_responder()
                         responder_was_found = True
@@ -202,7 +204,7 @@ class ConsoleApp:
             # Otherwise, give any marker-only responders a chance;
             else:
                 for component in self._active_components:
-                    responders = component.marker_responders
+                    responders = component.current_marker_responders
                     if len(responders):
                         for responder in responders:
                             if responder.check_response_match(response):
@@ -214,7 +216,7 @@ class ConsoleApp:
             # Finally give each active component a chance to field a
             # markerless responder;
             for component in self._active_components:
-                markerless_responder = component.markerless_responder
+                markerless_responder = component.current_markerless_responder
                 if markerless_responder:
                     markerless_responder(response)
                     responder_was_found = True
@@ -286,6 +288,10 @@ class ConsoleApp:
     @staticmethod
     def clear_console():
         os.system('cls' if os.name == 'nt' else 'clear')
+
+    @property
+    def terminal_width(self) -> int:
+        return configs.terminal_width_chars
 
     def quit(self):
         self._quit = True

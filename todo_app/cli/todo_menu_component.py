@@ -1,15 +1,21 @@
-from pyconsoleapp import Component
+from typing import Dict, TYPE_CHECKING
+
+from pyconsoleapp import Component, Responder, ArglessResponder, PrimaryArg, OptionalArg, validators, utils
+from pyconsoleapp.builtin_components import StandardPageComponent
 from todo_app import service
 
-_main_view_template = '''{todos}
-----------------------------------------------------------------------
--add, -a         [todo_item]  | -> Add a todo_item.
-    --today                   | -> Flags as important.
-    --importance [level: 1-3] | -> Describes the importance of a todo.
--remove, -r      [number]     | -> Remove a todo_item.
--edit, -e        [number]     | -> Edit a todo_item.
--dash                         | -> View todo_item dashboard.
-----------------------------------------------------------------------
+if TYPE_CHECKING:
+    from todo_app import Todo
+
+_main_view_template = u'''{todos}
+{single_hr}
+-add, -a         [todo_item]  \u2502 -> Add a todo_item.
+    --today                   \u2502 -> Flags as important.
+    --importance [level: 1-3] \u2502 -> Describes the importance of a todo.
+-remove, -r      [number]     \u2502 -> Remove a todo_item.
+-edit, -e        [number]     \u2502 -> Edit a todo_item.
+(enter)                       \u2502 -> View todo_item dashboard.
+{single_hr}
 '''
 
 
@@ -17,95 +23,61 @@ class TodoMenuComponent(Component):
 
     def __init__(self, **kwds):
         super().__init__(**kwds)
-
-        self.configure(state='home', printer=self.print_home_view, responders=[
-            self.configure_responder(self.add_todo, args=[
-                StdPrimaryArg(name='todo_item', markers=['-add', '-a']),
-                ValuelessOptionArg(name='today', markers=['--today', '--t']),
-                StdOptionArg(name='importance', markers=['--importance', '--i'], default_value=1,
-                             validators=[pcap.validators.validate_integer,
-                                         service.validate_importance_score])
+        self._configure_state(printer=self._print_main, responders=[
+            Responder(self._on_add_todo, args=[
+                PrimaryArg('todo_text', markers=['-add', '-a']),
+                OptionalArg('today_flag', markers=['--today', '--t']),
+                PrimaryArg('importance_score', markers=['--importance', '--i'], validators=[
+                    validators.validate_integer, service.validate_importance_score], default_value=1)
             ]),
-            self.configure_responder(self.remove_todo, args=[
-                StdPrimaryArg(name='todo_num', markers=['-remove', '-r'], validators=[
-                    self.todo_service.validate_todo_num
-                ])
-            ])
+            Responder(self._on_remove_todo, args=[
+                PrimaryArg('todo_number', markers=['-remove', 'r'], validators=[self._validate_todo_num])]),
+            Responder(self._on_edit_todo, args=[
+                PrimaryArg('todo_number', markers=['-edit', '-e'], validators=[self._validate_todo_num])]),
+            ArglessResponder(self._state_changer('dash'))
         ])
 
-        self.configure_states(['home', 'dash'])
+        self._todo_num_map: Dict[int, 'Todo'] = {}
 
-        # Configure home state;
-        self.configure_printer(self.print_home_view, ['home'])
-        self.configure_responder(self.add_todo, states=['home'], args=[
-            self.configure_std_primary_arg(name='todo_item', markers=['-add', '-a']),
-            self.configure_valueless_option_arg(name='today', markers=['--today', '--t']),
-            self.configure_std_option_arg('importance', markers=['--importance', '--i'], default_value=1,
-                                          validators=[pcap.validators.validate_integer,
-                                                      service.validate_importance_score])
-        ])
-        self.configure_responder(self.remove_todo, states=['home'], args=[
-            self.configure_std_primary_arg('todo_num', markers=['-remove', '-r'],
-                                           validators=[self.todo_service.validate_todo_num])
-        ])
-        self.configure_responder(self.edit_todo, states=['home'], args=[
-            self.configure_std_primary_arg('todo_num', markers=['-edit', '-e'],
-                                           validators=[self.todo_service.validate_todo_num])
-        ])
-        self.configure_responder(self.change_state('dash'), states=['home'], args=[
-            self.configure_valueless_primary_arg('dash', ['-dash'])
-        ])
+        self._dash_component = self._assign_state_to_component('dash', TodoDashComponent)
+        self._page_component = self._use_component(StandardPageComponent)
+        self._page_component.configure(page_title='Todo List')
 
-        # Configure dashboard state;
-        self.configure_printer(self.print_dash_view, ['dash'])
-        self.configure_responder(self.change_state('home'), states=['dash'], args=[
-            self.configure_valueless_primary_arg('home', ['-home'])
-        ])
+    def on_load(self) -> None:
+        self._todo_num_map = utils.make_numbered_map(service.todos)
 
-    def print_home_view(self):
-        # Build the todo_item list;
-        if not len(self.todo_service.todos):
-            todos_menu = pcap.styles.fore("No TODO's added yet.\n", 'blue')
-        else:
-            todos_menu = ''
-            for i, todo in enumerate(self.todo_service.todos):
-                todos_menu = todos_menu + format_todo(i + 1, todo)
+    def _print_main(self):
+        return self._page_component.print_view(page_content=_main_view_template.format(
+            todos=self._todo_list_view,
+            single_hr=u'\u2501' * self._app.terminal_width,
+        ))
 
-        # Build the main page detail;
-        output = _main_view_template.format(
-            hr=self.app._get_cached_component('single_hr_component').print(),
-            todos=todos_menu
-        )
+    @property
+    def _todo_list_view(self) -> str:
+        view = ''
+        for num, todo in self._todo_num_map.items():
+            view = view + '{num:<3} {todo_summary}\n'.format(
+                num=str(num) + '.',
+                todo_summary=utils.truncate_text(todo.text, self._app.terminal_width - 10)
+            )
+        return view
 
-        # Return in the standard page;
-        return self.app._get_cached_component('standard_page_component').print(
-            page_title="TODOs",
-            page_content=output
-        )
+    @staticmethod
+    def _add_todo(todo_text: str, today_flag: bool, importance_score: int) -> None:
+        service.add_todo(text=todo_text, today=today_flag, importance=importance_score)
 
-    def print_dash_view(self):
-        output = _dash_template.format(
-            todo_count=len(self.todo_service.todos)
-        )
-        return self.app._get_cached_component('standard_page_component').print(
-            page_title="Todo Dashboard",
-            page_content=output
-        )
+    @staticmethod
+    def _remove_todo(todo_num: int) -> None:
+        service.remove_todo(todo_num=todo_num)
 
-    def add_todo(self, args) -> None:
-        self.todo_service.add_todo(args['todo_item'], args['today'], args['importance'])
-
-    def remove_todo(self, args) -> None:
-        self.todo_service.remove_todo(args['todo_num'])
-
-    def edit_todo(self, args) -> None:
+    def _edit_todo(self, args) -> None:
         # Configure the editor component;
-        tde = self.app._get_cached_component('todo_editor_component')
+        tde = self._app._get_cached_component('todo_editor_component')
         tde = cast('TodoEditorComponent', tde)
         tde.subject = self.todo_service.fetch_todo(args['todo_num'])
 
         # Head to the editor;
-        self.app.go_to('todos.edit')
+        self._app.go_to('todos.edit')
 
 
 _dash_view_template = '''
@@ -113,3 +85,8 @@ There are currently {todo_count} todo_item's.
 
 -home                         -> Back to home.
 '''
+
+
+class TodoDashComponent(Component):
+    def __init__(self, **kwds):
+        super().__init__(**kwds)
