@@ -1,13 +1,15 @@
 from typing import Dict, TYPE_CHECKING
 
-from pyconsoleapp import Component, Responder, ArglessResponder, PrimaryArg, OptionalArg, validators, utils
+from pyconsoleapp import Component, PrimaryArg, OptionalArg, validators, utils
 from pyconsoleapp.builtin_components import StandardPageComponent
 from todo_app import service
 
 if TYPE_CHECKING:
     from todo_app import Todo
 
-_main_view_template = u'''{todos}
+
+class TodoMenuComponent(Component):
+    _template = u'''{todos}
 {single_hr}
 -add, -a         [todo_item]  \u2502 -> Add a todo_item.
     --today                   \u2502 -> Flags as important.
@@ -18,24 +20,18 @@ _main_view_template = u'''{todos}
 {single_hr}
 '''
 
-
-class TodoMenuComponent(Component):
-
     def __init__(self, **kwds):
         super().__init__(**kwds)
-        self._configure_state(printer=self._print_main, responders=[
-            Responder(self._on_add_todo, args=[
-                PrimaryArg('todo_text', markers=['-add', '-a']),
-                OptionalArg('today_flag', markers=['--today', '--t']),
-                PrimaryArg('importance_score', markers=['--importance', '--i'], validators=[
-                    validators.validate_integer, service.validate_importance_score], default_value=1)
-            ]),
-            Responder(self._on_remove_todo, args=[
-                PrimaryArg('todo_number', markers=['-remove', 'r'], validators=[self._validate_todo_num])]),
-            Responder(self._on_edit_todo, args=[
-                PrimaryArg('todo_number', markers=['-edit', '-e'], validators=[self._validate_todo_num])]),
-            ArglessResponder(self._state_changer('dash'))
-        ])
+        self._add_responder(self._on_add_todo, args=[
+            PrimaryArg('todo_text', markers=['-add', '-a']),
+            OptionalArg('today_flag', markers=['--today', '--t']),
+            PrimaryArg('importance_score', markers=['--importance', '--i'],
+                       validators=[validators.validate_integer, service.validate_importance_score], default_value=1)])
+        self._add_responder(self._on_remove_todo, args=[
+            PrimaryArg('todo_number', markers=['-remove', 'r'], validators=[self._validate_todo_num])])
+        self._add_responder(self._on_edit_todo, args=[
+            PrimaryArg('todo_number', markers=['-edit', '-e'], validators=[self._validate_todo_num])])
+        self._add_argless_responder(self._state_changer('dash'))
 
         self._todo_num_map: Dict[int, 'Todo'] = {}
 
@@ -46,11 +42,10 @@ class TodoMenuComponent(Component):
     def on_load(self) -> None:
         self._todo_num_map = utils.make_numbered_map(service.todos)
 
-    def _print_main(self):
-        return self._page_component.print_view(page_content=_main_view_template.format(
+    def printer(self):
+        return self._page_component.printer(page_content=self._template.format(
             todos=self._todo_list_view,
-            single_hr=u'\u2501' * self._app.terminal_width,
-        ))
+            single_hr=u'\u2501' * self._app.terminal_width))
 
     @property
     def _todo_list_view(self) -> str:

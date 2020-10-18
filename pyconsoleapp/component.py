@@ -17,8 +17,7 @@ class Component(abc.ABC):
         self._state_responder_map: Dict[str, 'Responder'] = {}
         self._state_printer_map: Dict[str, Callable[[], str]] = {}
         self._get_view_prefill: Optional[Callable[[], str]] = None
-        self._state_component_map: Dict[str, 'Component'] = {}
-        self._child_components_: List['Component'] = []
+        self._state_component_map: Dict[str, List['Component']] = {}
 
         self._validate()
 
@@ -57,45 +56,50 @@ class Component(abc.ABC):
         self._current_state = state
 
     @property
-    def current_state_component(self) -> 'Component':
-        """Returns the component associated with this component's current state."""
-        return self.get_state_component(self.current_state)
+    def get_active_components(self) -> List['Component']:
+        """Returns the components associated with the current state."""
+        return self.get_state_components(self.current_state)
 
-    @property
-    def _child_components(self) -> List['Component']:
-        """Returns a list of all child components, including childeren of childeren, etc."""
-        child_components = []
-        for child in self._child_components_:
-            child_components.extend(*child._child_components_)
-        return child_components
-
-    def get_state_component(self, state: str) -> 'Component':
+    def get_state_components(self, state: str) -> List['Component']:
         """Returns the component associated with the specified state."""
         self._validate_state(state)
+        components = []
+        for component in self._state_component_map[state]:
+            components.extend(component.)
         return self._state_component_map[state]
 
-    @property
-    def _current_printer(self) -> Callable[..., str]:
-        return self._state_printer_map[self.current_state]
-
-    def current_argless_responder(self) -> Optional['ArglessResponder']:
-        """Returns the argless responder, for the current state, if exists, otherwise returns None."""
+    @abc.abstractmethod
+    def printer(self, **kwds) -> str:
+        """Abstract method responsible for rendering the component view into text."""
         raise NotImplementedError
+
+    def argless_responder(self) -> Optional['ArglessResponder']:
+        """Returns the component's argless responder, if exists, otherwise returns None."""
+        for responder in self._responders:
+            if type(responder, ArglessResponder):
+                return responder
+        return None
 
     def current_markerless_responder(self) -> Optional['Responder']:
-        """Returns the markerless responder associated with the current state, if exists. Otherwise
-        returns None."""
-        raise NotImplementedError
+        """Returns the component's markerless responder, if exists, otherwise returns None."""
+        for responder in self._responders:
+            if responder.is_markerless:
+                return responder
+        return None
 
     def current_marker_responders(self) -> List['Responder']:
-        """Returns a list of the marker responders associated with this component."""
-        raise NotImplementedError
+        """Returns a list of the component's marker responders."""
+        mrs = []
+        for responder in self._responders:
+            if not responder.is_markerless and not type(responder, ArglessResponder):
+                mrs.append(responder)
+        return mrs
 
     def get_view(self) -> str:
         """Returns the view for the component, and adds this component, and its children to the active
         component register."""
-        self._app.activate_components([self, *self._child_components])
-        return self._current_printer()
+        self._app.activate_responders(self._active_responders)
+        return self.printer()
 
     def get_view_prefill(self) -> Optional[str]:
         """Returns the prefill for the component."""
@@ -109,7 +113,7 @@ class Component(abc.ABC):
         list(set(self._child_components_))
         return component
 
-    def _use_component(self, component_class: Type[T]) -> T:
+    def _use_component(self, component_class: Type[T], state: str = 'main') -> T:
         """Includes the child component in this component instance and returns the child instance."""
         component = component_class(app=self._app)
         self._child_components_.append(component)
