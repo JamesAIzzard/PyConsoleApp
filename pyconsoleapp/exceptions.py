@@ -45,8 +45,8 @@ class DuplicateMarkerlessArgError(PyConsoleAppError):
     """Indicating there are multiple markerless arguments assigned to this component state."""
 
 
-class DuplicateEmptyResponderError(PyConsoleAppError):
-    """Indicating there are multiple empty responders assigned to this component state."""
+class DuplicateArglessResponderError(PyConsoleAppError):
+    """Indicating there are multiple argless responders assigned to this component state."""
 
 
 class ResponseValidationError(PyConsoleAppError):

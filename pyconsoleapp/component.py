@@ -14,24 +14,50 @@ class Component(abc.ABC):
     def __init__(self, app: 'ConsoleApp', **kwds):
         self._app_ = app
         self._current_state: Optional[str] = None
-        self._state_responder_map: Dict[str, 'Responder'] = {}
-        self._state_printer_map: Dict[str, Callable[[], str]] = {}
-        self._get_view_prefill: Optional[Callable[[], str]] = None
-        self._state_component_map: Dict[str, List['Component']] = {}
-
-        self._validate()
+        self._local_responder_cache: List['Responder'] = []
+        self._get_view_prefill: Optional[Callable[..., str]] = None
+        self._local_components: List['Component'] = []
+        self._state_component_map: Dict[str, 'Component'] = {
+            "main": self
+        }
 
     @property
     def _app(self) -> 'ConsoleApp':
         """Returns the component's app reference."""
         return self._app_
 
+    @abc.abstractmethod
+    def printer(self, **kwds) -> str:
+        """Abstract method responsible for rendering the component view into text."""
+        raise NotImplementedError
+
     def on_load(self) -> None:
         """Method run immediately before the view is extracted from the component."""
 
     def _validate(self) -> None:
         """Checks the component is valid. Raises an exception if not."""
-        raise NotImplementedError
+        # Check there are not multiple local ArglessResponders or markerless args;
+        argless_found = False
+        markerless_found = False
+        for responder in self._local_responders:
+            if responder.is_argless:
+                if argless_found is False:
+                    argless_found = True
+                elif argless_found is True:
+                    raise exceptions.DuplicateArglessResponderError
+            if responder.has_markerless_arg:
+                if markerless_found is False:
+                    markerless_found = True
+                elif markerless_found is True:
+                    raise exceptions.DuplicateMarkerlessArgError
+
+    @property
+    def _local_responders(self) -> List['Responder']:
+        """Returns the list of responders belonging to the local components."""
+        if len(self._local_responder_cache) is 0:
+            for component in self.local_components:
+                self._local_responder_cache.extend(component.local_responders)
+        return self._local_responder_cache
 
     @property
     def _states(self) -> List[str]:
@@ -52,44 +78,74 @@ class Component(abc.ABC):
 
     @current_state.setter
     def current_state(self, state: str) -> None:
+        """Sets the component's current state."""
         self._validate_state(state)
         self._current_state = state
 
     @property
-    def get_active_components(self) -> List['Component']:
+    def local_components(self) -> List['Component']:
+        """Returns the child components for this component."""
+        return self._local_components
+
+    @property
+    def active_components(self) -> List['Component']:
         """Returns the components associated with the current state."""
         return self.get_state_components(self.current_state)
 
     def get_state_components(self, state: str) -> List['Component']:
         """Returns the component associated with the specified state."""
         self._validate_state(state)
+        # Grab the parent component for the state;
+        parent_component = self._state_component_map[state]
+        # Add the grandchild components first;
         components = []
-        for component in self._state_component_map[state]:
-            components.extend(component.)
-        return self._state_component_map[state]
+        for child_component in self.local_components:
+            components.extend(child_component.active_components)
+        # Add in the child components;
+        components.extend(self.local_components)
+        # Add the parent into the final list;
+        components.append(parent_component)
 
-    @abc.abstractmethod
-    def printer(self, **kwds) -> str:
-        """Abstract method responsible for rendering the component view into text."""
-        raise NotImplementedError
+        return components
 
-    def argless_responder(self) -> Optional['ArglessResponder']:
-        """Returns the component's argless responder, if exists, otherwise returns None."""
-        for responder in self._responders:
+    @property
+    def local_responders(self) -> List['Responder']:
+        """Returns the list of responders local to this component."""
+        return self._local_responders
+
+    @property
+    def _active_responders(self) -> List['Responder']:
+        """Returns a list of active responders for the current state combo."""
+        responders = []
+        for component in self.active_components:
+            responders.extend(component.local_responders)
+        return responders
+
+    def active_argless_responder(self) -> Optional['ArglessResponder']:
+        """Returns the argless responder for this state combo, if exists, otherwise returns None."""
+        argless_responder = None
+        for responder in self._active_responders:
             if type(responder, ArglessResponder):
-                return responder
-        return None
+                if argless_responder is None:
+                    argless_responder = responder
+                elif argless_responder is not None:
+                    raise exceptions.DuplicateArglessResponderError
+        return argless_responder
 
-    def current_markerless_responder(self) -> Optional['Responder']:
-        """Returns the component's markerless responder, if exists, otherwise returns None."""
-        for responder in self._responders:
-            if responder.is_markerless:
-                return responder
-        return None
+    def active_markerless_arg_responder(self) -> Optional['Responder']:
+        """Returns the component's markerless arg responder, if exists, otherwise returns None."""
+        markerless_arg_responder = None
+        for responder in self._active_responders:
+            if responder.has_markerless_arg:
+                if markerless_arg_responder is None:
+                    markerless_arg_responder = responder
+                elif markerless_arg_responder is not None:
+                    raise exceptions.DuplicateMarkerlessArgError
+        return markerless_arg_responder
 
-    def current_marker_responders(self) -> List['Responder']:
+    def active_marker_arg_responders(self) -> List['Responder']:
         """Returns a list of the component's marker responders."""
-        mrs = []
+        mars = []
         for responder in self._responders:
             if not responder.is_markerless and not type(responder, ArglessResponder):
                 mrs.append(responder)

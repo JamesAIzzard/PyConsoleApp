@@ -22,6 +22,11 @@ class TodoMenuComponent(Component):
 
     def __init__(self, **kwds):
         super().__init__(**kwds)
+        self.configure(responders={
+
+        })
+
+        # Todo - AHA, Calling some method like this means we can automtically run validate to check the setup.
         self._add_responder(self._on_add_todo, args=[
             PrimaryArg('todo_text', markers=['-add', '-a']),
             OptionalArg('today_flag', markers=['--today', '--t']),

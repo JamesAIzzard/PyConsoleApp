@@ -194,7 +194,7 @@ class ConsoleApp:
             # If the response is empty, give each active component a chance to respond;
             if response.replace(' ', '') == '':
                 for component in self._active_components:
-                    argless_responder = component.current_argless_responder
+                    argless_responder = component.active_argless_responder
                     if argless_responder:
                         argless_responder()
                         responder_was_found = True
@@ -204,7 +204,7 @@ class ConsoleApp:
             # Otherwise, give any marker-only responders a chance;
             else:
                 for component in self._active_components:
-                    responders = component.current_marker_responders
+                    responders = component.active_marker_arg_responders
                     if len(responders):
                         for responder in responders:
                             if responder.check_response_match(response):
@@ -216,7 +216,7 @@ class ConsoleApp:
             # Finally give each active component a chance to field a
             # markerless responder;
             for component in self._active_components:
-                markerless_responder = component.current_markerless_responder
+                markerless_responder = component.active_markerless_arg_responder
                 if markerless_responder:
                     markerless_responder(response)
                     responder_was_found = True

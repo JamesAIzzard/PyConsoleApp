@@ -473,7 +473,7 @@ class ConsoleAppComponent(ABC):
         if len(args) == 0:
             for responder in self._responders[self.current_state]:
                 if responder.is_argless_responder:
-                    raise exceptions.DuplicateEmptyResponderError
+                    raise exceptions.DuplicateArglessResponderError
 
         # Check the primary markers in this responder aren't identical to another set in this state;
         new_primary_markers = []
