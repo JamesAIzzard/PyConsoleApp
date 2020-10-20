@@ -196,7 +196,7 @@ class ConsoleApp:
                 for component in self._active_components:
                     argless_responder = component.active_argless_responder
                     if argless_responder:
-                        argless_responder()
+                        argless_responder.respond()
                         responder_was_found = True
                         if self._finished_processing_response:
                             return
@@ -208,7 +208,7 @@ class ConsoleApp:
                     if len(responders):
                         for responder in responders:
                             if responder.check_response_match(response):
-                                responder(response)
+                                responder.respond(response)
                                 responder_was_found = True
                                 if self._finished_processing_response:
                                     return
@@ -218,7 +218,7 @@ class ConsoleApp:
             for component in self._active_components:
                 markerless_responder = component.active_markerless_arg_responder
                 if markerless_responder:
-                    markerless_responder(response)
+                    markerless_responder.respond(response)
                     responder_was_found = True
                     if self._finished_processing_response:
                         return

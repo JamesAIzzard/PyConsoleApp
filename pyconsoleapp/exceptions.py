@@ -56,6 +56,10 @@ class ResponseValidationError(PyConsoleAppError):
         self.reason: Optional[str] = reason
 
 
+class InvalidArgConfigError(PyConsoleAppError):
+    """Indicating that the argument configuration is invald."""
+
+
 class ArgMissingValueError(ResponseValidationError):
     """Indicating the response is missing an argument value."""
 
@@ -71,7 +75,7 @@ class OrphanValueError(ResponseValidationError):
 
     def __init__(self, orphan_value: Optional[str] = None, **kwds):
         if orphan_value is not None:
-            orphan_value = ": "+orphan_value
+            orphan_value = ": " + orphan_value
         else:
             orphan_value = ''
         super().__init__(reason='There was an unexpected value{orphan_value}.'.format(orphan_value=orphan_value),

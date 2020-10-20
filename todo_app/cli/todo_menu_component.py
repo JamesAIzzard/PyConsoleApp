@@ -1,6 +1,6 @@
 from typing import Dict, TYPE_CHECKING
 
-from pyconsoleapp import Component, PrimaryArg, OptionalArg, validators, utils
+from pyconsoleapp import Component, PrimaryArg, OptionalArg, validators, utils, ResponseValidationError
 from pyconsoleapp.builtin_components import StandardPageComponent
 from todo_app import service
 
@@ -22,21 +22,19 @@ class TodoMenuComponent(Component):
 
     def __init__(self, **kwds):
         super().__init__(**kwds)
-        self.configure(responders={
-
-        })
-
-        # Todo - AHA, Calling some method like this means we can automtically run validate to check the setup.
-        self._add_responder(self._on_add_todo, args=[
-            PrimaryArg('todo_text', markers=['-add', '-a']),
-            OptionalArg('today_flag', markers=['--today', '--t']),
-            PrimaryArg('importance_score', markers=['--importance', '--i'],
-                       validators=[validators.validate_integer, service.validate_importance_score], default_value=1)])
-        self._add_responder(self._on_remove_todo, args=[
-            PrimaryArg('todo_number', markers=['-remove', 'r'], validators=[self._validate_todo_num])])
-        self._add_responder(self._on_edit_todo, args=[
-            PrimaryArg('todo_number', markers=['-edit', '-e'], validators=[self._validate_todo_num])])
-        self._add_argless_responder(self._state_changer('dash'))
+        self.configure(responders=[
+            self.configure_responder(self._on_add_todo, args=[
+                PrimaryArg(name='todo_text', markers=['-add', '-a']),
+                OptionalArg(name='today_flag', markers=['--today', '--t']),
+                PrimaryArg(name='importance_score', markers=['--importance', '--i'],
+                           validators=[validators.validate_integer, service.validate_importance_score],
+                           default_value=1)]),
+            self.configure_responder(self._on_remove_todo, args=[
+                PrimaryArg(name='todo_number', markers=['-remove', 'r'], validators=[self._validate_todo_num])]),
+            self.configure_responder(self._on_edit_todo, args=[
+                PrimaryArg(name='todo_number', markers=['-edit', '-e'], validators=[self._validate_todo_num])]),
+            self.configure_responder(self.get_state_changer('dash'))
+        ])
 
         self._todo_num_map: Dict[int, 'Todo'] = {}
 
@@ -54,6 +52,7 @@ class TodoMenuComponent(Component):
 
     @property
     def _todo_list_view(self) -> str:
+        """Returns an enumerated summary of all current _todo's"""
         view = ''
         for num, todo in self._todo_num_map.items():
             view = view + '{num:<3} {todo_summary}\n'.format(
@@ -62,15 +61,22 @@ class TodoMenuComponent(Component):
             )
         return view
 
+    def _validate_todo_num(self, value) -> int:
+        """Raises ResponseValidationError if number is invalid. Otherwise returns number as int."""
+        value = validators.validate_integer(value)
+        if value > len(self._todo_num_map):
+            raise ResponseValidationError('Input must be a number corresponding to a todo.')
+        return value
+
     @staticmethod
-    def _add_todo(todo_text: str, today_flag: bool, importance_score: int) -> None:
+    def _on_add_todo(todo_text: str, today_flag: bool, importance_score: int) -> None:
         service.add_todo(text=todo_text, today=today_flag, importance=importance_score)
 
     @staticmethod
-    def _remove_todo(todo_num: int) -> None:
+    def _on_remove_todo(todo_num: int) -> None:
         service.remove_todo(todo_num=todo_num)
 
-    def _edit_todo(self, args) -> None:
+    def _on_edit_todo(self, args) -> None:
         # Configure the editor component;
         tde = self._app._get_cached_component('todo_editor_component')
         tde = cast('TodoEditorComponent', tde)
