@@ -2,10 +2,10 @@ import abc
 from typing import List, Dict, Callable, Optional, Type, TypeVar, TYPE_CHECKING
 
 from pyconsoleapp import exceptions
+from pyconsoleapp.responder import Responder
 
 if TYPE_CHECKING:
     from pyconsoleapp import ConsoleApp
-    from pyconsoleapp.responders import Responder, ArglessResponder
     from pyconsoleapp.responder_args import ResponderArg
 
 T = TypeVar('T')
@@ -107,10 +107,7 @@ class Component(abc.ABC):
 
     def configure_responder(self, responder_func: Callable[..., None], args: Optional[List['ResponderArg']] = None):
         """Returns the correct responder type, with it's app reference configured."""
-        if args is None:
-            return ArglessResponder(app=self._app, func=responder_func)
-        else:
-            return Responder(app=self._app, func=responder_func, args=args)
+        return Responder(app=self._app, func=responder_func, args=args)
 
     @property
     def _local_responders(self) -> List['Responder']:
@@ -126,11 +123,11 @@ class Component(abc.ABC):
         return responders
 
     @property
-    def active_argless_responder(self) -> Optional['ArglessResponder']:
+    def active_argless_responder(self) -> Optional['Responder']:
         """Returns the argless responder for this state combo, if exists, otherwise returns None."""
         argless_responder = None
         for responder in self._active_responders:
-            if type(responder, ArglessResponder):
+            if responder.is_argless:
                 if argless_responder is None:
                     argless_responder = responder
                 elif argless_responder is not None:
@@ -169,11 +166,11 @@ class Component(abc.ABC):
         self._state_component_map[state] = component
         return component
 
-    def _use_component(self, component_class: Type[T], state: str = 'main') -> T:
+    def _use_component(self, component_class: Type[T]) -> T:
         """Includes the child component in this component instance and returns the child instance."""
         component = component_class(app=self._app)
         self._local_components_.append(component)
-        list(set(self._local_components_))
+        list(set(self._local_components_))  # Use set() to prevent duplication.
         return component
 
     def configure(self, responders: Optional[List['Responder']] = None, **kwds) -> None:
