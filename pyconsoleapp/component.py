@@ -82,26 +82,37 @@ class Component(abc.ABC):
         return changer
 
     @property
-    def _local_components(self) -> List['Component']:
+    def local_components(self) -> List['Component']:
         """Returns the child components for this component."""
         return self._local_components_
 
     @property
-    def _active_components(self) -> List['Component']:
+    def active_components(self) -> List['Component']:
         """Returns the components associated with the current state."""
         return self._get_state_components(self.current_state)
+
+    @property
+    def active_parent_component(self) -> 'Component':
+        """Returns the primary component associated with the current state, self if the state has not
+        been delegated."""
+        return self._state_component_map[self.current_state]
+
+    def get_state_parent_component(self, state: str) -> 'Component':
+        """Returns the parent component associated with the specified state."""
+        self._validate_state(state)
+        return self._state_component_map[state]
 
     def _get_state_components(self, state: str) -> List['Component']:
         """Returns the components associated with the specified state."""
         self._validate_state(state)
         components = []
         # Grab the parent component for the state;
-        parent_component = self._state_component_map[state]
+        parent_component = self.get_state_parent_component(state)
         # First add any components used by the parent
-        components.extend(parent_component._local_components)
+        components.extend(parent_component.local_components)
         # Now recursively add their active components;
-        for parent_local_component in parent_component._local_components:
-            components.extend(parent_local_component._active_components)
+        for parent_local_component in parent_component.local_components:
+            components.extend(parent_local_component.active_components)
 
         return components
 
@@ -118,7 +129,7 @@ class Component(abc.ABC):
     def _active_responders(self) -> List['Responder']:
         """Returns a list of active responders for the current state combo."""
         responders = []
-        for component in self._active_components:
+        for component in self.active_components:
             responders.extend(component._local_responders)
         return responders
 

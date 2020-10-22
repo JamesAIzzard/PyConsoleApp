@@ -102,24 +102,13 @@ class ConsoleApp:
             self._route_history.pop(0)
 
     def get_component(self, route: str, state: str) -> 'Component':
-        """Gets the component associated with the current route and specified component state."""
+        """Gets the component associated with the specified route and state."""
         self._validate_route(route)
         component = self._route_component_map[route]
-        return component.get_state_component(state=state)
-
-    def activate_components(self, components: List['Component']) -> None:
-        """Adds the list of components to the active components list."""
-        self._active_components.extend(components)
-        # Pass the list through set() to remove any duplicates;
-        self._active_components = list(set(self._active_components))
+        return component.get_state_parent_component(state)
 
     def activate_popup_component(self, popup: 'PopupComponent') -> None:
         self._active_popup_ = popup
-
-    def _clear_active_components(self) -> None:
-        """Clears all activated cli."""
-        self._active_components = []
-        self._active_popup_ = None
 
     @property
     def _current_component(self) -> 'Component':
@@ -128,11 +117,11 @@ class ConsoleApp:
         if popup is not None:
             return popup
         else:
-            route_component = self._route_component_map[self.current_route]
-            return route_component.current_state_component
+            return self._route_component_map[self.current_route].active_parent_component
 
     @property
     def _active_popup(self) -> Optional['PopupComponent']:
+        """Returns the active popup component, or None if no popup is active."""
         if self._active_popup_ is not None:
             return self._active_popup_
         active_guard = self._get_active_guard()
@@ -256,7 +245,6 @@ class ConsoleApp:
                 # Do the processing;
                 self._process_response(self._response)
                 self._clear_response()
-                self._clear_active_components()
 
             # The response has not been collected, draw the view and collect it;
             else:
