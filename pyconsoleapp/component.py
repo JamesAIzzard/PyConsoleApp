@@ -92,13 +92,13 @@ class Component(abc.ABC):
         return self._get_state_components(self.current_state)
 
     @property
-    def active_parent_component(self) -> 'Component':
+    def active_primary_component(self) -> 'Component':
         """Returns the primary component associated with the current state, self if the state has not
         been delegated."""
         return self._state_component_map[self.current_state]
 
-    def get_state_parent_component(self, state: str) -> 'Component':
-        """Returns the parent component associated with the specified state."""
+    def get_state_primary_component(self, state: str) -> 'Component':
+        """Returns the primary component associated with the specified state."""
         self._validate_state(state)
         return self._state_component_map[state]
 
@@ -107,11 +107,11 @@ class Component(abc.ABC):
         self._validate_state(state)
         components = []
         # Grab the parent component for the state;
-        parent_component = self.get_state_parent_component(state)
+        primary_component = self.get_state_primary_component(state)
         # First add any components used by the parent
-        components.extend(parent_component.local_components)
+        components.extend(primary_component.local_components)
         # Now recursively add their active components;
-        for parent_local_component in parent_component.local_components:
+        for parent_local_component in primary_component.local_components:
             components.extend(parent_local_component.active_components)
 
         return components
@@ -166,10 +166,12 @@ class Component(abc.ABC):
                 mars.append(responder)
         return mars
 
-    @property
-    def view_prefill(self) -> Optional[str]:
+    def get_view_prefill(self) -> Optional[str]:
         """Returns the prefill for the component."""
-        return self._get_view_prefill()
+        if self._get_view_prefill is not None:
+            return self._get_view_prefill()
+        else:
+            return None
 
     def _assign_state_to_component(self, state: str, component_class: Type[T]) -> T:
         """Assigns the specified component state to another component and returns the component instance."""
@@ -184,7 +186,9 @@ class Component(abc.ABC):
         list(set(self._local_components_))  # Use set() to prevent duplication.
         return component
 
-    def configure(self, responders: Optional[List['Responder']] = None, **kwds) -> None:
+    def configure(self, responders: Optional[List['Responder']] = None,
+                  get_prefill: Optional[Callable[[], str]] = None,
+                  **kwds) -> None:
         """Sets local responders to list provided, if populated."""
         if responders is not None:
             self._local_responders_ = responders

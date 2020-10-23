@@ -19,8 +19,10 @@ if TYPE_CHECKING:
 T = TypeVar('T')
 
 
-def _write_to_screen(view: str, prefill: str = ''):
+def _write_to_screen(view: str, prefill: Optional[str]):
     """Adds the option of prefill to the normal input() function."""
+    if prefill is None:
+        prefill = ''
     if os.name == 'nt':
         write(prefill)
         return input(view)
@@ -41,8 +43,7 @@ class ConsoleApp:
         self._route_component_map: Dict[str, 'Component'] = {}
         self._route_exit_guard_map: Dict[str, 'GuardComponent'] = {}
         self._route_entrance_guard_map: Dict[str, 'GuardComponent'] = {}
-        self._active_components: List['Component'] = []
-        self._active_popup_: Optional['PopupComponent'] = None
+        self._active_popups_: List['PopupComponent'] = []
         self._finished_processing_response: bool = False
         self._quit: bool = False
         self._name: str = name
@@ -105,25 +106,30 @@ class ConsoleApp:
         """Gets the component associated with the specified route and state."""
         self._validate_route(route)
         component = self._route_component_map[route]
-        return component.get_state_parent_component(state)
-
-    def activate_popup_component(self, popup: 'PopupComponent') -> None:
-        self._active_popup_ = popup
+        return component.get_state_primary_component(state)
 
     @property
-    def _current_component(self) -> 'Component':
-        """Returns the component associated with the current app route, or a popup if one is active."""
+    def _current_primary_component(self) -> 'Component':
+        """Returns the primary component associated with the current app route, or a popup if one is active."""
         popup = self._active_popup
         if popup is not None:
             return popup
         else:
-            return self._route_component_map[self.current_route].active_parent_component
+            return self._route_component_map[self.current_route].active_primary_component
+
+    def activate_popup(self, popup: 'PopupComponent') -> None:
+        """Adds the specified popup to the list of active popups."""
+        self._active_popups_.append(popup)
+
+    def deactivate_popup(self, popup: 'PopupComponent') -> None:
+        """Removes the specified popup from the list of active popups, if present."""
+        self._active_popups_.remove(popup)
 
     @property
     def _active_popup(self) -> Optional['PopupComponent']:
-        """Returns the active popup component, or None if no popup is active."""
-        if self._active_popup_ is not None:
-            return self._active_popup_
+        """Returns the next active popup component, or None if no popup is active."""
+        if len(self._active_popups_) > 0:
+            return self._active_popups_[0]
         active_guard = self._get_active_guard()
         if active_guard is not None:
             return active_guard
@@ -248,11 +254,11 @@ class ConsoleApp:
 
             # The response has not been collected, draw the view and collect it;
             else:
-                component = self._current_component
+                component = self._current_primary_component
                 component.on_load()
 
                 # Check the component is still the right one after the load method ran.
-                if not component == self._current_component:
+                if not component == self._current_primary_component:
                     continue
 
                 self.clear_console()
@@ -260,7 +266,7 @@ class ConsoleApp:
                 if component is not type(PopupComponent):
                     self._historise_route(self.current_route)
 
-                self._response = _write_to_screen(view=component.get_view(), prefill=component.get_view_prefill())
+                self._response = _write_to_screen(view=component.printer(), prefill=component.get_view_prefill())
 
     def go_to(self, route: str) -> None:
         """Navigates the application the specified route."""

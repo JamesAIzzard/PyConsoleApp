@@ -1,40 +1,49 @@
-from typing import TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
-from pyconsoleapp import ConsoleAppComponent
-
-from todo_app import service
+from pyconsoleapp import Component, PrimaryArg, OptionalArg
+from pyconsoleapp.builtin_components import StandardPageComponent
 
 if TYPE_CHECKING:
     from todo_app.todo import Todo
 
-_template = '''
-Update the todo_item and press enter.
-'''
 
-class TodoEditorComponent(ConsoleAppComponent):
+class TodoEditorComponent(Component):
+    _template = '''Update the todo_item and press enter:'''
 
-    def __init__(self, app):
-        super().__init__(app)
-        self.subject:'Todo'
-        self.configure_printer(self.print_view)
-        self.configure_responder(self.on_enter, args=[
-            self.configure_std_primary_arg(name='todo_item', markers=[None]),
-            self.configure_valueless_option_arg(name='today', markers=['--today', '-t']),
-            self.configure_std_option_arg(name='importance', markers=['--importance', '-i'],
-                                          validators=[service.validate_importance_score], default_value=1)
-        ])
+    def __init__(self, **kwds):
+        super().__init__(**kwds)
 
-    def print_view(self):
-        output = self.app._get_cached_component('standard_page_component').print(
-            page_title='Todo Editor:',
-            page_content=_template
-        )
-        return output, self.subject.text
+        # Todo - Need to decide how best to share _validate_importance_score with the menu component.
+        # In many ways, validate_importance_score is a parameter which should be in the overall todo_service, not
+        # really related to the cli.
 
-    def on_enter(self, args):
-        # Update the response;
-        self.subject.text = args['todo_item']
-        self.subject.today = args['today']
-        self.subject.importance = args['importance']
-        # Head back to the menu;
-        self.app.go_to('todos')
+        self.configure(responders=[self.configure_responder(self._on_enter, args=[
+            PrimaryArg(name='todo_text', accepts_value=True, markers=None),
+            PrimaryArg(name='today_flag', accepts_value=False, markers=['--today', '--t']),
+            OptionalArg(name='importance_score', accepts_value=True, markers=['--importance', '--i'],
+                        validators=self._validate_importance_score, default_value=1)])])
+        self.configure(get_prefill=self._get_todo_text)
+
+        self._todo: Optional['Todo'] = None
+
+        self._page_component = self._use_component(StandardPageComponent)
+        self._page_component.configure(page_title='Todo Editor')
+
+    def printer(self, **kwds) -> str:
+        return self._page_component.printer(page_content=self._template)
+
+    def _get_todo_text(self) -> str:
+        if self._todo is not None:
+            return self._todo.text
+        else:
+            return ''
+
+    def _on_enter(self, todo_text: str, today_flag: bool, importance_score: int):
+        self._todo.text = todo_text
+        self._todo.today = today_flag
+        self._todo.importance = importance_score
+        self._app.go_to('todos')
+
+    def configure(self, todo: Optional['Todo'] = None, **kwds) -> None:
+        self._todo = todo
+        super().configure(**kwds)

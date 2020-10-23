@@ -73,12 +73,22 @@ class ResponderArg(abc.ABC):
 class PrimaryArg(ResponderArg):
     """Represents a mandatory Responder argument."""
 
-    def __init__(self, **kwds):
-        super().__init__(**kwds)
+    def __init__(self, name: str, accepts_value: bool,
+                 markers: Optional[List[str]] = None,
+                 validators: Optional[List[Callable[..., ...]]] = None,
+                 default_value: Any = None,
+                 **kwds):
+        super().__init__(name=name, accepts_value=accepts_value, markers=markers, validators=validators,
+                         default_value=default_value, **kwds)
 
 
 class OptionalArg(ResponderArg):
     """Represents an optional Responder argument."""
 
-    def __init__(self, **kwds):
-        super().__init__(**kwds)
+    def __init__(self, name: str, accepts_value: bool,
+                 markers: Optional[List[str]] = None,
+                 validators: Optional[List[Callable[..., ...]]] = None,
+                 default_value: Any = None,
+                 **kwds):
+        super().__init__(name=name, accepts_value=accepts_value, markers=markers, validators=validators,
+                         default_value=default_value, **kwds)

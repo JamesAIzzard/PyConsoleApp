@@ -21,7 +21,7 @@ class StandardPageComponent(Component):
         self._page_title: Optional[str] = None
         self._header_component = self._use_component(HeaderComponent)
 
-    def print_view(self, page_content: str) -> str:
+    def printer(self, page_content: str) -> str:
         """Returns the standard page component view as a string, with the page content inserted."""
         # Populate the correct template and return;
         if self._page_title:
@@ -35,7 +35,7 @@ class StandardPageComponent(Component):
                 header=self._header_component.print_view(),
                 page_content=page_content)
 
-    def configure(self, page_title: Optional[str], **kwds) -> None:
+    def configure(self, page_title: Optional[str] = None, **kwds) -> None:
         """Sets the page title."""
         self._page_title = page_title
         super().configure(**kwds)

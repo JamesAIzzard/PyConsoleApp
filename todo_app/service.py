@@ -37,6 +37,6 @@ def remove_todo(todo_num: int) -> None:
     todos.pop(todo_num - 1)
 
 
-def fetch_todo(self, todo_num: int) -> 'Todo':
+def fetch_todo(todo_num: int) -> 'Todo':
     """Returns the _todo at the specified index."""
     return todos[todo_num - 1]

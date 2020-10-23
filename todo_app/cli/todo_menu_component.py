@@ -3,6 +3,7 @@ from typing import Dict, TYPE_CHECKING
 from pyconsoleapp import Component, PrimaryArg, OptionalArg, validators, utils, ResponseValidationError
 from pyconsoleapp.builtin_components import StandardPageComponent
 from todo_app import service
+from todo_app.cli import TodoEditorComponent
 
 if TYPE_CHECKING:
     from todo_app import Todo
@@ -24,21 +25,24 @@ class TodoMenuComponent(Component):
         super().__init__(**kwds)
         self.configure(responders=[
             self.configure_responder(self._on_add_todo, args=[
-                PrimaryArg(name='todo_text', markers=['-add', '-a']),
-                OptionalArg(name='today_flag', markers=['--today', '--t']),
-                PrimaryArg(name='importance_score', markers=['--importance', '--i'],
+                PrimaryArg(name='todo_text', accepts_value=True, markers=['-add', '-a']),
+                OptionalArg(name='today_flag', accepts_value=False, markers=['--today', '--t']),
+                PrimaryArg(name='importance_score', accepts_value=True, markers=['--importance', '--i'],
                            validators=[validators.validate_integer, service.validate_importance_score],
                            default_value=1)]),
             self.configure_responder(self._on_remove_todo, args=[
-                PrimaryArg(name='todo_number', markers=['-remove', 'r'], validators=[self._validate_todo_num])]),
+                PrimaryArg(name='todo_number', accepts_value=True, markers=['-remove', 'r'],
+                           validators=[self._validate_todo_num])]),
             self.configure_responder(self._on_edit_todo, args=[
-                PrimaryArg(name='todo_number', markers=['-edit', '-e'], validators=[self._validate_todo_num])]),
+                PrimaryArg(name='todo_number', accepts_value=True, markers=['-edit', '-e'],
+                           validators=[self._validate_todo_num])]),
             self.configure_responder(self.get_state_changer('dash'))
         ])
 
         self._todo_num_map: Dict[int, 'Todo'] = {}
 
         self._dash_component = self._assign_state_to_component('dash', TodoDashComponent)
+        self._editor_component = self._assign_state_to_component('edit', TodoEditorComponent)
         self._page_component = self._use_component(StandardPageComponent)
         self._page_component.configure(page_title='Todo List')
 
@@ -73,16 +77,12 @@ class TodoMenuComponent(Component):
         service.add_todo(text=todo_text, today=today_flag, importance=importance_score)
 
     @staticmethod
-    def _on_remove_todo(todo_num: int) -> None:
-        service.remove_todo(todo_num=todo_num)
+    def _on_remove_todo(todo_number: int) -> None:
+        service.remove_todo(todo_num=todo_number)
 
-    def _on_edit_todo(self, args) -> None:
-        # Configure the editor component;
-        tde = self._app._get_cached_component('todo_editor_component')
-        tde = cast('TodoEditorComponent', tde)
-        tde.subject = self.todo_service.fetch_todo(args['todo_num'])
-
-        # Head to the editor;
+    def _on_edit_todo(self, todo_number: int) -> None:
+        t = service.fetch_todo(todo_number)
+        self._editor_component.configure(todo=t)
         self._app.go_to('todos.edit')
 
 
