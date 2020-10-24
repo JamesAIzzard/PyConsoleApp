@@ -2,8 +2,7 @@ from typing import Dict, Callable, Optional, TYPE_CHECKING
 
 from pyconsoleapp import Component, PrimaryArg, OptionalArg, validators, utils, ResponseValidationError
 from pyconsoleapp.builtin_components import StandardPageComponent
-from todo_app import service
-from todo_app.cli import TodoEditorComponent
+from todo_app import service, cli
 
 if TYPE_CHECKING:
     from todo_app import Todo
@@ -43,7 +42,7 @@ class TodoMenuComponent(Component):
 
         self._dash_component = self.delegate_state('dash', TodoDashComponent)
         self._dash_component.configure(on_go_home=self.get_state_changer('main'))
-        self._editor_component = self.delegate_state('edit', TodoEditorComponent)
+        self._editor_component = self.delegate_state('edit', cli.TodoEditorComponent)
         self._page_component = self.use_component(StandardPageComponent)
         self._page_component.configure(page_title='Todo List')
 
@@ -53,18 +52,21 @@ class TodoMenuComponent(Component):
     def printer(self):
         return self._page_component.printer(page_content=self._template.format(
             todos=self._todo_list_view,
-            single_hr=u'\u2501' * self.app.terminal_width))
+            single_hr=u'\u2500' * self.app.terminal_width))
 
     @property
     def _todo_list_view(self) -> str:
         """Returns an enumerated summary of all current _todo's"""
         view = ''
-        for num, todo in self._todo_num_map.items():
-            view = view + '{num:<3} {todo_summary}\n'.format(
-                num=str(num) + '.',
-                todo_summary=utils.truncate_text(todo.text, self.app.terminal_width - 10)
-            )
-        return view
+        if service.count_todos() is 0:
+            return 'No todo\'s to show yet.'
+        else:
+            for num, todo in self._todo_num_map.items():
+                view = view + '{num:<3} {todo_summary}\n'.format(
+                    num=str(num) + '.',
+                    todo_summary=utils.truncate_text(todo.text, self.app.terminal_width - 10)
+                )
+            return view
 
     def _validate_todo_num(self, value) -> int:
         """Raises ResponseValidationError if number is invalid. Otherwise returns number as int."""
@@ -84,24 +86,24 @@ class TodoMenuComponent(Component):
     def _on_edit_todo(self, todo_number: int) -> None:
         t = service.fetch_todo(todo_number)
         self._editor_component.configure(todo=t)
-        save_check_component = self.app.guard_exit('todos.edit', TodoSaveCheckComponent)
+        self.app.guard_exit('todos.edit', cli.TodoSaveCheckComponent)
         self.app.go_to('todos.edit')
 
 
 class TodoDashComponent(Component):
-    _template = '''-home \u2502 -> Back to home.
+    _template = u'''-home \u2502 -> Back to home.
 
 There are currently {todo_count} todo_item's.
 '''
 
     def __init__(self, **kwds):
         super().__init__(**kwds)
+        self._on_go_home_: Optional[Callable[[], None]] = None
         self.configure(responders=[
             self.configure_responder(self._on_go_home_, args=[
                 PrimaryArg(name='home', accepts_value=False, markers=['-home'])
             ])
         ])
-        self._on_go_home_: Optional[Callable[[], None]] = None
 
     def printer(self, **kwds) -> str:
         return self._template.format(todo_count=service.count_todos())

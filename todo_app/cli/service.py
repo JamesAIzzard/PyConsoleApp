@@ -1,5 +1,5 @@
 from pyconsoleapp import styles, utils, ResponseValidationError
-from todo_app import Todo, cli, exceptions
+from todo_app import Todo, service, exceptions
 
 
 def format_todo_menu_item(number: int, todo_item: 'Todo') -> str:
@@ -18,7 +18,7 @@ def format_todo_menu_item(number: int, todo_item: 'Todo') -> str:
 def validate_importance_score(value) -> int:
     """Raises a ResponseValidationError if the score is invalid, otherwise returns the score as an int."""
     try:
-        value = cli.service.validate_importance_score(value)
+        value = service.validate_importance_score(value)
     except exceptions.InvalidImportanceScore:
         raise ResponseValidationError('Invalid importance score.')
     return value

@@ -1,1 +1,3 @@
-import todo_app
+from todo_app import app
+
+app.run()

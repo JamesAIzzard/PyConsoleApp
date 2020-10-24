@@ -1,6 +1,6 @@
-from typing import Callable, List, Dict, Optional, TYPE_CHECKING
+from typing import Callable, List, Dict, Any, Optional, TYPE_CHECKING
 
-from pyconsoleapp import exceptions
+from pyconsoleapp import exceptions, responder_args
 
 if TYPE_CHECKING:
     from pyconsoleapp import ConsoleApp
@@ -14,7 +14,7 @@ class Responder:
                  **kwds):
         self._app: 'ConsoleApp' = app
         self._responder_func: Callable[..., None] = func
-        self._args: Optional[List['ResponderArg']] = args
+        self._args: List['ResponderArg'] = args if args is not None else []
 
         self._markerless_arg: Optional['ResponderArg'] = None
         for arg in self._args:
@@ -50,14 +50,31 @@ class Responder:
         return len(self._args) == 0
 
     @property
-    def _args_and_values(self) -> Dict[str, ...]:
+    def _primary_args(self) -> List['ResponderArg']:
+        """Returns a list of the primary arguments assigned to this responder."""
+        primary_args = []
+        for arg in self._args:
+            if isinstance(arg, responder_args.PrimaryArg):
+                primary_args.append(arg)
+        return primary_args
+
+    @property
+    def _args_and_values(self) -> Dict[str, Any]:
         """Returns a dictionary of all arg names and their current values."""
         kwds = {}
         for arg in self._args:
             kwds[arg.name] = arg.value
         return kwds
 
-    def _parse_response(self, response: str) -> Dict[str, ...]:
+    def check_marker_match(self, response: str) -> bool:
+        """Returns True/False to indicate if the given response matches this responder."""
+        split_response = set(response.split())
+        for arg in self._primary_args:
+            if not split_response.intersection(set(arg.markers)):
+                return False
+        return True
+
+    def _parse_response(self, response: str) -> Dict[str, Any]:
         """Splits the response into into its respective arguments.
         Note: Validation occurs here, in the argument setters."""
 

@@ -1,20 +1,15 @@
 import os
 from typing import Dict, List, Optional, TYPE_CHECKING, Type, TypeVar
 
-if os.name == 'nt':
-    from pyautogui import write
-else:
-    import readline
-
 from pyconsoleapp import exceptions, configs
 
 if os.name == 'nt':
-    from pyautogui import write
+    from pyautogui import write  # noqa
 else:
-    import readline
+    import readline  # noqa
 
 if TYPE_CHECKING:
-    from pyconsoleapp import Component, GuardComponent, PopupComponent
+    from pyconsoleapp import Component, GuardComponent
 
 T = TypeVar('T')
 
@@ -43,7 +38,6 @@ class ConsoleApp:
         self._route_component_map: Dict[str, 'Component'] = {}
         self._route_exit_guard_map: Dict[str, 'GuardComponent'] = {}
         self._route_entrance_guard_map: Dict[str, 'GuardComponent'] = {}
-        self._active_popups_: List['PopupComponent'] = []
         self._finished_processing_response: bool = False
         self._quit: bool = False
         self._name: str = name
@@ -58,7 +52,7 @@ class ConsoleApp:
     @property
     def current_route(self) -> str:
         """Gets the current application route."""
-        if self._current_route == '':
+        if self._current_route is None:
             return self._root_route
         else:
             return self._current_route
@@ -97,7 +91,8 @@ class ConsoleApp:
 
     def _historise_route(self, route: str) -> None:
         # Save the current route to the history;
-        self._route_history.append(route)
+        if len(self._route_history) > 0 and not self._route_history[-1] == route:
+            self._route_history.append(route)
         # Make sure the history doesn't get too long;
         while len(self._route_history) > configs.route_history_length:
             self._route_history.pop(0)
@@ -110,59 +105,49 @@ class ConsoleApp:
 
     @property
     def _current_primary_component(self) -> 'Component':
-        """Returns the primary component associated with the current app route, or a popup if one is active."""
-        popup = self._active_popup
-        if popup is not None:
-            return popup
+        """Returns the primary component associated with the current app route, or a guard if one is active."""
+        guard = self._get_active_guard()
+        if guard is not None:
+            return guard
         else:
             return self._route_component_map[self.current_route].active_primary_component
 
-    def activate_popup(self, popup: 'PopupComponent') -> None:
-        """Adds the specified popup to the list of active popups."""
-        self._active_popups_.append(popup)
-
-    def deactivate_popup(self, popup: 'PopupComponent') -> None:
-        """Removes the specified popup from the list of active popups, if present."""
-        self._active_popups_.remove(popup)
-
-    @property
-    def _active_popup(self) -> Optional['PopupComponent']:
-        """Returns the next active popup component, or None if no popup is active."""
-        if len(self._active_popups_) > 0:
-            return self._active_popups_[0]
-        active_guard = self._get_active_guard()
-        if active_guard is not None:
-            return active_guard
-        else:
-            return None
-
     def _get_active_guard(self) -> Optional['GuardComponent']:
         """Returns the active guard if exists, otherwise returns None."""
+        guard: Optional['GuardComponent'] = None
         # First check the exit guards;
         for guarded_route in self._route_exit_guard_map.keys():
             # If the guarded root does not feature in the submitted route;
             if guarded_route not in self.current_route:
                 # The submitted route must have exited, so populate the component;
-                return self._route_exit_guard_map[guarded_route]
+                guard = self._route_exit_guard_map[guarded_route]
+                break
         # Now check the entrance guards;
         for guarded_route in self._route_entrance_guard_map.keys():
             # If the guarded root is part of the submitted route;
             if guarded_route in self.current_route:
                 # Then the submitted route must be beyond the guard, so populate the
                 # component;
-                return self._route_entrance_guard_map[guarded_route]
-        # No active guards;
-        return None
+                guard = self._route_entrance_guard_map[guarded_route]
+        # Return the guard if it is populated & activated.
+        if guard is not None and guard.activated:
+            return guard
+        else:
+            return None
 
-    def guard_entrance(self, route_to_stay_outside: str, guard: 'GuardComponent'):
-        """Assigns the guard to the entrance of the specified route."""
+    def guard_entrance(self, route_to_stay_outside: str, guard_class: Type[T]) -> T:
+        """Instantiates the guard, assigns it to guard entrance of the specified route, and returns it."""
         self._validate_route(route_to_stay_outside)
+        guard = guard_class(app=self)  # type: GuardComponent
         self._route_entrance_guard_map[route_to_stay_outside] = guard
+        return guard
 
-    def guard_exit(self, route_to_stay_within: str, guard: 'GuardComponent'):
-        """Assigns the guard to the exit of the specified route."""
+    def guard_exit(self, route_to_stay_within: str, guard_class: Type[T]) -> T:
+        """Instantiates the guard, assigns it to guard exit of the specified route, and returns it."""
         self._validate_route(route_to_stay_within)
+        guard = guard_class(app=self)  # type: GuardComponent
         self._route_exit_guard_map[route_to_stay_within] = guard
+        return guard
 
     def clear_entrance(self, route: str) -> None:
         """Clears any guard from the entrance of the specified route."""
@@ -176,6 +161,12 @@ class ConsoleApp:
         if route in self._route_exit_guard_map.keys():
             del self._route_exit_guard_map[route]
 
+    def clear_guard(self, guard_instance: 'GuardComponent') -> None:
+        """Removes the guard from the entrance/exit route-guard maps."""
+        self._route_exit_guard_map = {k: v for k, v in self._route_exit_guard_map.items() if not v == guard_instance}
+        self._route_entrance_guard_map = {k: v for k, v in self._route_entrance_guard_map.items() if
+                                          not v == guard_instance}
+
     def _process_response(self, response: str) -> None:
         """Processes the response provided.
         - If the response is empty, the active cli are searched for an empty responder, which, if found, is
@@ -185,38 +176,36 @@ class ConsoleApp:
         - If no marker responders are found, the active cli are searched for a markerless responder, which if
         found, is called with the response as an argument."""
         responder_was_found = False
+        current_primary_component = self._current_primary_component
         try:
             # If the response is empty, give each active component a chance to respond;
             if response.replace(' ', '') == '':
-                for component in self._active_components:
-                    argless_responder = component.active_argless_responder
-                    if argless_responder:
-                        argless_responder.respond()
-                        responder_was_found = True
-                        if self._finished_processing_response:
-                            return
-
-            # Otherwise, give any marker-only responders a chance;
-            else:
-                for component in self._active_components:
-                    responders = component.active_marker_arg_responders
-                    if len(responders):
-                        for responder in responders:
-                            if responder.check_response_match(response):
-                                responder.respond(response)
-                                responder_was_found = True
-                                if self._finished_processing_response:
-                                    return
-
-            # Finally give each active component a chance to field a
-            # markerless responder;
-            for component in self._active_components:
-                markerless_responder = component.active_markerless_arg_responder
-                if markerless_responder:
-                    markerless_responder.respond(response)
+                argless_responder = current_primary_component.active_argless_responder
+                if argless_responder:
+                    argless_responder.respond()
                     responder_was_found = True
                     if self._finished_processing_response:
                         return
+
+            # Otherwise, give any marker-only responders a chance;
+            else:
+                responders = current_primary_component.active_marker_arg_responders
+                if len(responders):
+                    for responder in responders:
+                        if responder.check_marker_match(response):
+                            responder.respond(response)
+                            responder_was_found = True
+                            if self._finished_processing_response:
+                                return
+
+            # Finally give each active component a chance to field a
+            # markerless responder;
+            markerless_responder = current_primary_component.active_markerless_arg_responder
+            if markerless_responder:
+                markerless_responder.respond(response)
+                responder_was_found = True
+                if self._finished_processing_response:
+                    return
 
             # If no component has responded, then raise an exception;
             if not responder_was_found and not response.replace(' ', '') == '':
@@ -232,9 +221,6 @@ class ConsoleApp:
         self._response = None
         self._finished_processing_response = False
 
-    # TODO - We need to think about how these next two control the response search from within Component.
-    # - Ideally we need this to default to halting the response cycle when a response occurs. Like an opt-back-in
-    # scheme.
     def continue_responding(self) -> None:
         """Instructs the application to continue searching for responders."""
         self._finished_processing_response = False
@@ -256,16 +242,13 @@ class ConsoleApp:
             else:
                 component = self._current_primary_component
                 component.on_load()
-
                 # Check the component is still the right one after the load method ran.
                 if not component == self._current_primary_component:
                     continue
-
+                # Record the route in history;
+                self._historise_route(self.current_route)
+                # Draw the view;
                 self.clear_console()
-                # Only add the component to the history if it wasn't a popup.
-                if component is not type(PopupComponent):
-                    self._historise_route(self.current_route)
-
                 self._response = _write_to_screen(view=component.printer(), prefill=component.get_view_prefill())
 
     def go_to(self, route: str) -> None:
@@ -274,7 +257,6 @@ class ConsoleApp:
         # Set the new route;
         self.current_route = route
 
-    # Todo - Need to test that this works with the new _call position of _historise_route().
     def go_back(self) -> None:
         """Returns the current route to the previous route in the route history."""
         self.current_route = self._route_history.pop()

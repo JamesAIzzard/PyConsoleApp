@@ -9,25 +9,27 @@ class ResponderArg(abc.ABC):
 
     def __init__(self, name: str, accepts_value: bool,
                  markers: Optional[List[str]] = None,
-                 validators: Optional[List[Callable[..., ...]]] = None,
+                 validators: Optional[List[Callable[..., Any]]] = None,
                  default_value: Any = None,
                  **kwds):
 
         if accepts_value is False:
-            if markers is not None or validators is not None or default_value is not None:
+            if validators is not None or default_value is not None:
                 raise exceptions.InvalidArgConfigError
-
-        if accepts_value is False and default_value is not None:
-            raise exceptions.InvalidArgConfigError  # Doesn't make sense to have a default value on a valueless.
 
         self._name: str = name
         self._accepts_value = accepts_value
         self._markers: List[str] = markers if markers is not None else []
-        self._validators: List[Callable[..., ...]] = validators if validators is not None else []
-        self._value: ... = None
-        self.value = default_value  # The setter is used so any validations are run.
-        if accepts_value is False:  # Valueless values should start at false.
-            self._value = False
+        self._validators: List[Callable[..., Any]] = validators if validators is not None else []
+        self._value: Any = None
+
+        # If we accept a value and have a default, set the value as default (using validators in setter).
+        if accepts_value is True and default_value is not None:
+            self.value = default_value
+        # If we don't accept a value;
+        elif accepts_value is False:
+            # Valuless values start at False;
+            self.value = False
 
     @property
     def name(self) -> str:
@@ -35,12 +37,12 @@ class ResponderArg(abc.ABC):
         return self._name
 
     @property
-    def value(self) -> ...:
+    def value(self) -> Any:
         """Returns the argument's value."""
         return self._value
 
     @value.setter
-    def value(self, value: ...) -> None:
+    def value(self, value: Any) -> None:
         """Sets the argument's value, via any registered validators."""
         # First check we aren't trying to set an arbitrary value on a valueless arg;
         if not self.accepts_value and not isinstance(value, bool):
@@ -49,7 +51,7 @@ class ResponderArg(abc.ABC):
         temp_value = value
         for validator in self._validators:
             temp_value = validator(temp_value)
-            self._value = temp_value
+        self._value = temp_value
 
     @property
     def accepts_value(self) -> bool:
@@ -75,7 +77,7 @@ class PrimaryArg(ResponderArg):
 
     def __init__(self, name: str, accepts_value: bool,
                  markers: Optional[List[str]] = None,
-                 validators: Optional[List[Callable[..., ...]]] = None,
+                 validators: Optional[List[Callable[..., Any]]] = None,
                  default_value: Any = None,
                  **kwds):
         super().__init__(name=name, accepts_value=accepts_value, markers=markers, validators=validators,
@@ -87,7 +89,7 @@ class OptionalArg(ResponderArg):
 
     def __init__(self, name: str, accepts_value: bool,
                  markers: Optional[List[str]] = None,
-                 validators: Optional[List[Callable[..., ...]]] = None,
+                 validators: Optional[List[Callable[..., Any]]] = None,
                  default_value: Any = None,
                  **kwds):
         super().__init__(name=name, accepts_value=accepts_value, markers=markers, validators=validators,

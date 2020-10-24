@@ -48,9 +48,9 @@ class TestCheckResponseMatch(TestCase):
             self.test_component.configure_std_primary_arg(
                 'beta', ['-beta', '-b'])
         ])
-        self.assertTrue(r.check_response_match('-alpha -b'))
-        self.assertFalse(r.check_response_match('-not any markers'))
-        self.assertFalse(r.check_response_match('-a not all markers'))
+        self.assertTrue(r.check_marker_match('-alpha -b'))
+        self.assertFalse(r.check_marker_match('-not any markers'))
+        self.assertFalse(r.check_marker_match('-a not all markers'))
 
     def test_works_with_valueless_args(self):
         r = Responder(self.app, Callable, args=[
@@ -59,15 +59,15 @@ class TestCheckResponseMatch(TestCase):
             self.test_component.configure_std_primary_arg(
                 'beta', ['-beta', '-b'])
         ])
-        self.assertTrue(r.check_response_match('-alpha -b'))
-        self.assertFalse(r.check_response_match('-not any markers'))
-        self.assertFalse(r.check_response_match('-a not all markers'))
+        self.assertTrue(r.check_marker_match('-alpha -b'))
+        self.assertFalse(r.check_marker_match('-not any markers'))
+        self.assertFalse(r.check_marker_match('-a not all markers'))
 
     def test_works_with_markerless_args(self):
         r = Responder(self.app, Callable, args=[
             self.test_component.configure_markerless_primary_arg('alpha'),
         ])
-        self.assertTrue(r.check_response_match(
+        self.assertTrue(r.check_marker_match(
             'anything at all because its markerless'))
 
     def test_works_with_std_and_markerless_args(self):
@@ -76,9 +76,9 @@ class TestCheckResponseMatch(TestCase):
             self.test_component.configure_std_primary_arg(
                 'beta', ['-beta', '-b'])
         ])
-        self.assertTrue(r.check_response_match(
+        self.assertTrue(r.check_marker_match(
             'anything at all because its markerless -beta'))
-        self.assertFalse(r.check_response_match(
+        self.assertFalse(r.check_marker_match(
             'anything at all because its markerless'))
 
 

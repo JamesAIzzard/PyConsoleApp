@@ -15,7 +15,7 @@ class Component(abc.ABC):
     """Base class for all application components."""
     def __init__(self, app: 'ConsoleApp', **kwds):
         self._app = app
-        self._current_state: Optional[str] = None
+        self._current_state: str = 'main'
         self._local_responders_: List['Responder'] = []
         self._get_view_prefill: Optional[Callable[..., str]] = None
         self._local_components_: List['Component'] = []
@@ -66,8 +66,6 @@ class Component(abc.ABC):
     @property
     def current_state(self) -> str:
         """Returns the component's current state."""
-        if self._current_state is None:
-            raise exceptions.NoCurrentStateError
         return self._current_state
 
     @current_state.setter
@@ -76,7 +74,7 @@ class Component(abc.ABC):
         self._validate_state(state)
         self._current_state = state
 
-    def get_state_changer(self, new_state: str) -> Callable[..., ...]:
+    def get_state_changer(self, new_state: str) -> Callable[[], None]:
         def changer():
             self.current_state = new_state
 

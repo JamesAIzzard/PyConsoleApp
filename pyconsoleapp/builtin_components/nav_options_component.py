@@ -1,22 +1,23 @@
-from pyconsoleapp import Component, Responder, PrimaryArg, OptionalArg
-
-_template = u'''Navigate Back   \u2502 -back, -b
-Quit            \u2502 -quit, -q
-'''
+from pyconsoleapp import Component, PrimaryArg
 
 
 class NavOptionsComponent(Component):
+    _template = u'''Navigate Back   \u2502 -back, -b
+Quit            \u2502 -quit, -q'''
 
     def __init__(self, **kwds):
         super().__init__(**kwds)
-        self._configure_state('main', responders=[
-            Responder(self._on_back, args=[PrimaryArg('back flag', markers=['-back', '-b'])]),
-            Responder(self._on_quit, args=[PrimaryArg('quit flag', markers=['-quit', '-q'])])
+        self.configure(responders=[
+            self.configure_responder(self._on_back, args=[
+                PrimaryArg(name='back', accepts_value=False, markers=['-back', '-b'])
+            ]),
+            self.configure_responder(self._on_quit, args=[
+                PrimaryArg(name='quit', accepts_value=False, markers=['-quit', '-q'])
+            ])
         ])
 
-    @staticmethod
-    def print_view(self) -> str:
-        return _template
+    def printer(self, **kwds) -> str:
+        return self._template
 
     def _on_back(self) -> None:
         route_list = self.app.current_route.split('.')

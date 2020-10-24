@@ -21,7 +21,7 @@ def validate_todo_num(num) -> int:
     return num
 
 
-def validate_importance_score(score) -> None:
+def validate_importance_score(score) -> int:
     """Validates and returnes the importance score."""
     try:
         score = int(score)
@@ -29,6 +29,7 @@ def validate_importance_score(score) -> None:
         raise todo_app.exceptions.InvalidImportanceScore
     if score < 1 or score > 3:
         raise todo_app.exceptions.InvalidImportanceScore
+    return score
 
 
 def add_todo(text: str, today: bool, importance: int) -> None:
