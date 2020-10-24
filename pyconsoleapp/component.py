@@ -12,8 +12,9 @@ T = TypeVar('T')
 
 
 class Component(abc.ABC):
+    """Base class for all application components."""
     def __init__(self, app: 'ConsoleApp', **kwds):
-        self._app_ = app
+        self._app = app
         self._current_state: Optional[str] = None
         self._local_responders_: List['Responder'] = []
         self._get_view_prefill: Optional[Callable[..., str]] = None
@@ -23,9 +24,9 @@ class Component(abc.ABC):
         }
 
     @property
-    def _app(self) -> 'ConsoleApp':
+    def app(self) -> 'ConsoleApp':
         """Returns the component's app reference."""
-        return self._app_
+        return self._app
 
     @abc.abstractmethod
     def printer(self, **kwds) -> str:
@@ -118,7 +119,7 @@ class Component(abc.ABC):
 
     def configure_responder(self, responder_func: Callable[..., None], args: Optional[List['ResponderArg']] = None):
         """Returns the correct responder type, with it's app reference configured."""
-        return Responder(app=self._app, func=responder_func, args=args)
+        return Responder(app=self.app, func=responder_func, args=args)
 
     @property
     def _local_responders(self) -> List['Responder']:
@@ -173,15 +174,15 @@ class Component(abc.ABC):
         else:
             return None
 
-    def _assign_state_to_component(self, state: str, component_class: Type[T]) -> T:
+    def delegate_state(self, state: str, component_class: Type[T]) -> T:
         """Assigns the specified component state to another component and returns the component instance."""
-        component = component_class(app=self._app)
+        component = component_class(app=self.app)
         self._state_component_map[state] = component
         return component
 
-    def _use_component(self, component_class: Type[T]) -> T:
+    def use_component(self, component_class: Type[T]) -> T:
         """Includes the child component in this component instance and returns the child instance."""
-        component = component_class(app=self._app)
+        component = component_class(app=self.app)
         self._local_components_.append(component)
         list(set(self._local_components_))  # Use set() to prevent duplication.
         return component

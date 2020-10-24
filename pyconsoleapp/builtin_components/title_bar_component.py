@@ -11,6 +11,6 @@ class TitleBarComponent(Component):
     def print_view(self) -> str:
         """Returns title bar component view as string."""
         return _view_template.format(
-            app_name=styles.weight(self._app.name, 'bright'),
-            route=styles.fore(self._app.current_route.replace('.', '>'), 'blue')
+            app_name=styles.weight(self.app.name, 'bright'),
+            route=styles.fore(self.app.current_route.replace('.', '>'), 'blue')
         )

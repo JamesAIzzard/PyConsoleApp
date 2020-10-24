@@ -14,14 +14,14 @@ class HeaderComponent(Component):
 
     def __init__(self, **kwds):
         super().__init__(**kwds)
-        self._title_bar = self._use_component(TitleBarComponent)
-        self._nav_options = self._use_component(NavOptionsComponent)
-        self._message_bar = self._use_component(MessageBarComponent)
+        self._title_bar = self.use_component(TitleBarComponent)
+        self._nav_options = self.use_component(NavOptionsComponent)
+        self._message_bar = self.use_component(MessageBarComponent)
 
     def print_view(self) -> str:
         return _view_template.format(
             title_bar=self._title_bar.print_view(),
             nav_bar=self._nav_options.print_view(),
-            single_hr=u'\u2500' * self._app.terminal_width,
+            single_hr=u'\u2500' * self.app.terminal_width,
             message_bar=self._message_bar.print_view()
         )

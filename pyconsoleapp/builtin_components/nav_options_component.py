@@ -19,11 +19,11 @@ class NavOptionsComponent(Component):
         return _template
 
     def _on_back(self) -> None:
-        route_list = self._app.current_route.split('.')
+        route_list = self.app.current_route.split('.')
         if len(route_list) > 1:
             route_list.pop(-1)
             back_route = '.'.join(route_list)
-            self._app.go_to(back_route)
+            self.app.go_to(back_route)
 
     def _on_quit(self) -> None:
-        self._app.quit()
+        self.app.quit()

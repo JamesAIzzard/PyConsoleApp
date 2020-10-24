@@ -6,6 +6,10 @@ from todo_app.todo import Todo
 todos: List['Todo'] = []
 
 
+def save_todo(todo: 'Todo') -> None:
+    todo.saved = True
+
+
 def validate_todo_num(num) -> int:
     """Validates and returns the todo_ number."""
     try:
@@ -40,3 +44,8 @@ def remove_todo(todo_num: int) -> None:
 def fetch_todo(todo_num: int) -> 'Todo':
     """Returns the _todo at the specified index."""
     return todos[todo_num - 1]
+
+
+def count_todos() -> int:
+    """Returns the number of _todo items."""
+    return len(todos)

@@ -1,4 +1,4 @@
-from typing import Dict, TYPE_CHECKING
+from typing import Dict, Callable, Optional, TYPE_CHECKING
 
 from pyconsoleapp import Component, PrimaryArg, OptionalArg, validators, utils, ResponseValidationError
 from pyconsoleapp.builtin_components import StandardPageComponent
@@ -36,14 +36,15 @@ class TodoMenuComponent(Component):
             self.configure_responder(self._on_edit_todo, args=[
                 PrimaryArg(name='todo_number', accepts_value=True, markers=['-edit', '-e'],
                            validators=[self._validate_todo_num])]),
-            self.configure_responder(self.get_state_changer('dash'))
+            self.configure_responder(self.get_state_changer('dash'), args=None)
         ])
 
         self._todo_num_map: Dict[int, 'Todo'] = {}
 
-        self._dash_component = self._assign_state_to_component('dash', TodoDashComponent)
-        self._editor_component = self._assign_state_to_component('edit', TodoEditorComponent)
-        self._page_component = self._use_component(StandardPageComponent)
+        self._dash_component = self.delegate_state('dash', TodoDashComponent)
+        self._dash_component.configure(on_go_home=self.get_state_changer('main'))
+        self._editor_component = self.delegate_state('edit', TodoEditorComponent)
+        self._page_component = self.use_component(StandardPageComponent)
         self._page_component.configure(page_title='Todo List')
 
     def on_load(self) -> None:
@@ -52,7 +53,7 @@ class TodoMenuComponent(Component):
     def printer(self):
         return self._page_component.printer(page_content=self._template.format(
             todos=self._todo_list_view,
-            single_hr=u'\u2501' * self._app.terminal_width))
+            single_hr=u'\u2501' * self.app.terminal_width))
 
     @property
     def _todo_list_view(self) -> str:
@@ -61,7 +62,7 @@ class TodoMenuComponent(Component):
         for num, todo in self._todo_num_map.items():
             view = view + '{num:<3} {todo_summary}\n'.format(
                 num=str(num) + '.',
-                todo_summary=utils.truncate_text(todo.text, self._app.terminal_width - 10)
+                todo_summary=utils.truncate_text(todo.text, self.app.terminal_width - 10)
             )
         return view
 
@@ -83,16 +84,29 @@ class TodoMenuComponent(Component):
     def _on_edit_todo(self, todo_number: int) -> None:
         t = service.fetch_todo(todo_number)
         self._editor_component.configure(todo=t)
-        self._app.go_to('todos.edit')
-
-
-_dash_view_template = '''
-There are currently {todo_count} todo_item's.
-
--home                         -> Back to home.
-'''
+        save_check_component = self.app.guard_exit('todos.edit', TodoSaveCheckComponent)
+        self.app.go_to('todos.edit')
 
 
 class TodoDashComponent(Component):
+    _template = '''-home \u2502 -> Back to home.
+
+There are currently {todo_count} todo_item's.
+'''
+
     def __init__(self, **kwds):
         super().__init__(**kwds)
+        self.configure(responders=[
+            self.configure_responder(self._on_go_home_, args=[
+                PrimaryArg(name='home', accepts_value=False, markers=['-home'])
+            ])
+        ])
+        self._on_go_home_: Optional[Callable[[], None]] = None
+
+    def printer(self, **kwds) -> str:
+        return self._template.format(todo_count=service.count_todos())
+
+    def configure(self, on_go_home: Optional[Callable[[], None]] = None, **kwds) -> None:
+        if on_go_home is not None:
+            self._on_go_home_ = on_go_home
+        super().configure(**kwds)

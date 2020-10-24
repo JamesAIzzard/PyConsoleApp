@@ -19,7 +19,7 @@ class StandardPageComponent(Component):
     def __init__(self, **kwds):
         super().__init__(**kwds)
         self._page_title: Optional[str] = None
-        self._header_component = self._use_component(HeaderComponent)
+        self._header_component = self.use_component(HeaderComponent)
 
     def printer(self, page_content: str) -> str:
         """Returns the standard page component view as a string, with the page content inserted."""
