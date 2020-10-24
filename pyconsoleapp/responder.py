@@ -70,7 +70,7 @@ class Responder:
         """Returns True/False to indicate if the given response matches this responder."""
         split_response = set(response.split())
         for arg in self._primary_args:
-            if not split_response.intersection(set(arg.markers)):
+            if len(split_response.intersection(set(arg.markers))) == 0:
                 return False
         return True
 
@@ -78,7 +78,7 @@ class Responder:
         """Splits the response into into its respective arguments.
         Note: Validation occurs here, in the argument setters."""
 
-        words = response.split()
+        words = response.split()  # Split the response into a list of words.
         current_arg = self.markerless_arg  # None if no markerless arg exists.
         value_buffer = []  # List used to compile words for a value.
 
@@ -90,8 +90,9 @@ class Responder:
 
                 # If we found a marker, finalise the previous value if exists, and reset the buffer;
                 if word_is_marker:
+                    current_arg = arg
                     if len(value_buffer):
-                        arg.value = ' '.join(value_buffer)
+                        current_arg.value = ' '.join(value_buffer)
                     value_buffer = []
 
                     # If the arg is valueless, adjust value to indicate it was found;
@@ -108,6 +109,10 @@ class Responder:
                     raise exceptions.OrphanValueError('Unexpected argument: {}'.format(word))
                 # Append the word to the value buffer;
                 value_buffer.append(word)
+
+        # Out of words, so write the final value buffer;
+        if len(value_buffer):
+            current_arg.value = ' '.join(value_buffer)
 
         # Return the kwds dict;
         return self._args_and_values

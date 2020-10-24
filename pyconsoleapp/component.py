@@ -18,7 +18,7 @@ class Component(abc.ABC):
         self._current_state: str = 'main'
         self._local_responders_: List['Responder'] = []
         self._get_view_prefill: Optional[Callable[..., str]] = None
-        self._local_components_: List['Component'] = []
+        self._local_components: List['Component'] = []
         self._state_component_map: Dict[str, 'Component'] = {
             "main": self
         }
@@ -83,7 +83,7 @@ class Component(abc.ABC):
     @property
     def local_components(self) -> List['Component']:
         """Returns the child components for this component."""
-        return self._local_components_
+        return self._local_components
 
     @property
     def active_components(self) -> List['Component']:
@@ -107,11 +107,12 @@ class Component(abc.ABC):
         components = []
         # Grab the parent component for the state;
         primary_component = self.get_state_primary_component(state)
-        # First add any components used by the parent
+        # First add any components directly used by the primary, and the primary itself.
+        components.append(primary_component)
         components.extend(primary_component.local_components)
         # Now recursively add their active components;
-        for parent_local_component in primary_component.local_components:
-            components.extend(parent_local_component.active_components)
+        for component in primary_component.local_components:
+            components.extend(component.active_components)
 
         return components
 
@@ -181,8 +182,8 @@ class Component(abc.ABC):
     def use_component(self, component_class: Type[T]) -> T:
         """Includes the child component in this component instance and returns the child instance."""
         component = component_class(app=self.app)
-        self._local_components_.append(component)
-        list(set(self._local_components_))  # Use set() to prevent duplication.
+        self._local_components.append(component)
+        list(set(self._local_components))  # Use set() to prevent duplication.
         return component
 
     def configure(self, responders: Optional[List['Responder']] = None,

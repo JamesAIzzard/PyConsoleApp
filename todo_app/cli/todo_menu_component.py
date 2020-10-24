@@ -26,9 +26,9 @@ class TodoMenuComponent(Component):
             self.configure_responder(self._on_add_todo, args=[
                 PrimaryArg(name='todo_text', accepts_value=True, markers=['-add', '-a']),
                 OptionalArg(name='today_flag', accepts_value=False, markers=['--today', '--t']),
-                PrimaryArg(name='importance_score', accepts_value=True, markers=['--importance', '--i'],
-                           validators=[validators.validate_integer, service.validate_importance_score],
-                           default_value=1)]),
+                OptionalArg(name='importance_score', accepts_value=True, markers=['--importance', '--i'],
+                            validators=[validators.validate_integer, service.validate_importance_score],
+                            default_value=1)]),
             self.configure_responder(self._on_remove_todo, args=[
                 PrimaryArg(name='todo_number', accepts_value=True, markers=['-remove', 'r'],
                            validators=[self._validate_todo_num])]),
