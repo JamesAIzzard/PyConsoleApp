@@ -5,12 +5,8 @@ class PyConsoleAppError(Exception):
     """Base exception for PyConsoleApp."""
 
 
-class NoRootRouteError(PyConsoleAppError):
+class NoCurrentRouteError(PyConsoleAppError):
     """Indicating no root route has been configured for the application."""
-
-
-class RootRouteAlreadyConfiguredError(PyConsoleAppError):
-    """Indicates the root route has been configured already."""
 
 
 class InvalidRouteError(PyConsoleAppError):

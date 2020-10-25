@@ -32,10 +32,9 @@ def _write_to_screen(view: str, prefill: Optional[str]):
 class ConsoleApp:
     def __init__(self, name):
         self._response: Optional[str] = None
-        self._root_route: Optional[str] = None
         self._current_route: Optional[str] = None
         self._route_history: List[str] = []
-        self._route_component_map: Dict[str, 'Component'] = {}
+        self._route_component_map: Dict[str, Optional['Component']] = {}
         self._route_exit_guard_map: Dict[str, 'GuardComponent'] = {}
         self._route_entrance_guard_map: Dict[str, 'GuardComponent'] = {}
         self._finished_processing_response: bool = False
@@ -53,9 +52,8 @@ class ConsoleApp:
     def current_route(self) -> str:
         """Gets the current application route."""
         if self._current_route is None:
-            return self._root_route
-        else:
-            return self._current_route
+            raise exceptions.NoCurrentRouteError
+        return self._current_route
 
     @current_route.setter
     def current_route(self, route: str) -> None:
@@ -64,26 +62,6 @@ class ConsoleApp:
             self._current_route = route
         else:
             raise KeyError('The route {} was not recognised.'.format(route))
-
-    @property
-    def root_route(self) -> str:
-        """Gets the application's root route."""
-        if self._root_route is None:
-            raise exceptions.NoRootRouteError
-        return self._root_route
-
-    def add_root_route(self, route: str, component_class: Type['Component']) -> None:
-        """Sets the application's route root and assigns its component."""
-        if self._root_route is not None:
-            raise exceptions.RootRouteAlreadyConfiguredError
-        self._root_route = route
-        self.add_route(route, component_class)
-
-    def add_route(self, route: str, component_class: Type['Component']) -> None:
-        """Configures a new application root and assigns its component."""
-        if route in self._route_component_map:
-            raise exceptions.RouteAlreadyExistsError
-        self._route_component_map[route] = component_class(app=self)
 
     def _validate_route(self, route: str):
         if route not in self._route_component_map:
@@ -98,8 +76,11 @@ class ConsoleApp:
             self._route_history.pop(0)
 
     def get_component(self, route: str, state: str, component_class: Type[T]) -> T:
-        """Gets the component associated with the specified route and state."""
+        """Gets the component associated with the specified route and state. Initialising it if the
+        state has not yet been assigned its component instance (if app is mid configuration)."""
         self._validate_route(route)
+        if self._route_component_map[route] is None:
+            self._route_component_map[route] = component_class(app=self)
         component = self._route_component_map[route]
         assert isinstance(component, component_class)
         return component.get_state_primary_component(state)
@@ -261,6 +242,16 @@ class ConsoleApp:
     def go_back(self) -> None:
         """Returns the current route to the previous route in the route history."""
         self.current_route = self._route_history.pop()
+
+    def configure(self, routes: Optional[Dict[str, Type['Component']]] = None, **kwds) -> None:
+        """Configures the application routes and swallows any remaining keywords."""
+        if routes is not None:
+            for route in routes:
+                self._route_component_map[route] = None
+            for route, component_class in routes.items():
+                if self._route_component_map[route] is None:
+                    self._route_component_map[route] = component_class(app=self)
+        assert not hasattr(super(), 'configure')
 
     @staticmethod
     def clear_console():

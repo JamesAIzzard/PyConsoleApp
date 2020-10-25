@@ -6,7 +6,9 @@ from pyconsoleapp import ConsoleApp
 app = ConsoleApp('Todo App')
 
 # Configure some todo_app routes;
-app.configure(routes=[
-    RootRoute('todos', cli.TodoMenuComponent),
-    Route('todos.edit', cli.TodoEditorComponent)
-])
+app.configure(routes={
+    'todos': cli.TodoMenuComponent,
+    'todos.edit': cli.TodoEditorComponent
+})
+# Configure the route to start with;
+app.current_route = 'todos'

@@ -90,27 +90,35 @@ class TodoMenuComponent(Component):
     def _on_edit_todo(self, todo_number: int) -> None:
         t = service.fetch_todo(todo_number)
         self._editor_component.configure(todo=t)
-        self.app.guard_exit('todos.edit', cli.TodoSaveCheckComponent)
+        exit_guard = self.app.guard_exit('todos.edit', cli.TodoSaveCheckComponent)
+        exit_guard.configure(todo_to_check=t)
         self.app.go_to('todos.edit')
 
 
 class TodoDashComponent(Component):
     _template = u'''-home \u2502 -> Back to home.
 
-There are currently {todo_count} todo_item's.
+There are currently {todo_count} todo items.
 '''
 
     def __init__(self, **kwds):
         super().__init__(**kwds)
         self._on_go_home_: Optional[Callable[[], None]] = None
         self.configure(responders=[
-            self.configure_responder(self._on_go_home_, args=[
+            self.configure_responder(self._on_go_home, args=[
                 PrimaryArg(name='home', accepts_value=False, markers=['-home'])
             ])
         ])
+        self.page_component = self.use_component(StandardPageComponent)
+        self.page_component.configure(page_title='Dashboard')
 
     def printer(self, **kwds) -> str:
-        return self._template.format(todo_count=service.count_todos())
+        return self.page_component.printer(
+            page_content=self._template.format(todo_count=service.count_todos())
+        )
+
+    def _on_go_home(self) -> None:
+        self._on_go_home_()
 
     def configure(self, on_go_home: Optional[Callable[[], None]] = None, **kwds) -> None:
         if on_go_home is not None:

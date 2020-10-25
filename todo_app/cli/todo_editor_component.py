@@ -23,8 +23,7 @@ Update the todo and press enter:
                 PrimaryArg(name='todo_text', accepts_value=True, markers=None),
                 PrimaryArg(name='today_flag', accepts_value=False, markers=['--today', '--t']),
                 OptionalArg(name='importance_score', accepts_value=True, markers=['--importance', '--i'],
-                            validators=[cli.service.validate_importance_score], default_value=1)]
-                                     ),
+                            validators=[cli.service.validate_importance_score], default_value=1)]),
             self.configure_responder(self._on_save, args=[
                 PrimaryArg(name='save', accepts_value=False, markers=['-save'])]
                                      )
@@ -45,7 +44,7 @@ Update the todo and press enter:
         else:
             return ''
 
-    def _on_enter(self, todo_text: str, today_flag: bool, importance_score: int):
+    def _on_enter(self, todo_text: str, today_flag: bool, importance_score: int = 1):
         self._todo.saved = False
         self._todo.text = todo_text
         self._todo.today = today_flag
