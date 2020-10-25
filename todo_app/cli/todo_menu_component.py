@@ -42,7 +42,7 @@ class TodoMenuComponent(Component):
 
         self._dash_component = self.delegate_state('dash', TodoDashComponent)
         self._dash_component.configure(on_go_home=self.get_state_changer('main'))
-        self._editor_component = self.delegate_state('edit', cli.TodoEditorComponent)
+        self._editor_component = self.app.get_component('todos.edit', 'main', cli.TodoEditorComponent)
         self._page_component = self.use_component(StandardPageComponent)
         self._page_component.configure(page_title='Todo List')
 

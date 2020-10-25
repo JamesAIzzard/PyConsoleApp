@@ -108,7 +108,8 @@ class Responder:
             # Is the word a marker or part of a value?
             # If it is a marker, write the buffer on the previous arg and update the current arg;
             if word_is_marker(current_word):
-                current_arg.write_value_buffer() if current_arg is not None else ...
+                if current_arg is not None:
+                    current_arg.write_value_buffer()
                 current_arg = get_arg_for_marker(current_word)
             # If it is a value, just add it to the buffer;
             else:

@@ -20,5 +20,6 @@ class GuardComponent(Component, abc.ABC):
         self.app.clear_guard(self)
 
     def configure(self, should_activate: Optional[Callable[[], bool]] = None, **kwds) -> None:
-        self._should_activate = should_activate if should_activate is not None else ...
+        if should_activate is not None:
+            self._should_activate = should_activate
         super().configure(**kwds)

@@ -10,9 +10,9 @@ if TYPE_CHECKING:
 
 class TodoEditorComponent(Component):
     _template = '''
--save \u2502 -> Back to home.
+-save \u2502 -> Save the todo.
 
-Update the todo_item and press enter:
+Update the todo and press enter:
 '''
 
     def __init__(self, **kwds):
@@ -57,5 +57,6 @@ Update the todo_item and press enter:
         service.save_todo(self._todo)
 
     def configure(self, todo: Optional['Todo'] = None, **kwds) -> None:
-        self._todo = todo if todo is not None else ...
+        if todo is not None:
+            self._todo = todo
         super().configure(**kwds)

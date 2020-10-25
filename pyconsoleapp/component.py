@@ -13,6 +13,7 @@ T = TypeVar('T')
 
 class Component(abc.ABC):
     """Base class for all application components."""
+
     def __init__(self, app: 'ConsoleApp', **kwds):
         self._app = app
         self._current_state: str = 'main'
@@ -191,7 +192,9 @@ class Component(abc.ABC):
                   **kwds) -> None:
         """Sets local responders to list provided, if populated."""
         if responders is not None:
-            self._local_responders_ = responders
+            self._local_responders_.extend(responders)
+        if get_prefill is not None:
+            self._get_view_prefill = get_prefill
         self._validate()
         # Swallow any remaining **kwds and check this really is the base class.
         assert not hasattr(super(), 'configure')

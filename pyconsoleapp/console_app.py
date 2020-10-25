@@ -97,10 +97,11 @@ class ConsoleApp:
         while len(self._route_history) > configs.route_history_length:
             self._route_history.pop(0)
 
-    def get_component(self, route: str, state: str) -> 'Component':
+    def get_component(self, route: str, state: str, component_class: Type[T]) -> T:
         """Gets the component associated with the specified route and state."""
         self._validate_route(route)
         component = self._route_component_map[route]
+        assert isinstance(component, component_class)
         return component.get_state_primary_component(state)
 
     @property
