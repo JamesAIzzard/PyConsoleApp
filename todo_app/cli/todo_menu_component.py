@@ -1,6 +1,6 @@
 from typing import Dict, Callable, Optional, TYPE_CHECKING
 
-from pyconsoleapp import Component, PrimaryArg, OptionalArg, validators, utils, ResponseValidationError
+from pyconsoleapp import Component, PrimaryArg, OptionalArg, validators, utils, ResponseValidationError, styles
 from pyconsoleapp.builtin_components import StandardPageComponent
 from todo_app import service, cli
 
@@ -30,7 +30,7 @@ class TodoMenuComponent(Component):
                             validators=[validators.validate_integer, service.validate_importance_score],
                             default_value=1)]),
             self.configure_responder(self._on_remove_todo, args=[
-                PrimaryArg(name='todo_number', accepts_value=True, markers=['-remove', 'r'],
+                PrimaryArg(name='todo_number', accepts_value=True, markers=['-remove', '-r'],
                            validators=[self._validate_todo_num])]),
             self.configure_responder(self._on_edit_todo, args=[
                 PrimaryArg(name='todo_number', accepts_value=True, markers=['-edit', '-e'],
@@ -58,14 +58,18 @@ class TodoMenuComponent(Component):
     def _todo_list_view(self) -> str:
         """Returns an enumerated summary of all current _todo's"""
         view = ''
-        if service.count_todos() is 0:
+        if service.count_todos() == 0:
             return 'No todo\'s to show yet.'
         else:
             for num, todo in self._todo_num_map.items():
-                view = view + '{num:<3} {todo_summary}\n'.format(
-                    num=str(num) + '.',
-                    todo_summary=utils.truncate_text(todo.text, self.app.terminal_width - 10)
-                )
+                # Make the text red if today;
+                if todo.today:
+                    text = styles.fore(todo.text, 'red')
+                else:
+                    text = todo.text
+                view = view + utils.wrap_text('{number:<3} {todo_text}'.format(
+                    number=styles.weight(str(num), 'bright') + '.',
+                    todo_text=text)) + '\n'
             return view
 
     def _validate_todo_num(self, value) -> int:

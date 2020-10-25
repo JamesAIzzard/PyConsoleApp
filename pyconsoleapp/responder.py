@@ -1,6 +1,7 @@
+from inspect import signature
 from typing import Callable, List, Dict, Any, Optional, TYPE_CHECKING
 
-from pyconsoleapp import exceptions, responder_args
+from pyconsoleapp import exceptions
 
 if TYPE_CHECKING:
     from pyconsoleapp import ConsoleApp
@@ -45,6 +46,14 @@ class Responder:
             return len(self._args) > 0
 
     @property
+    def _all_markers(self) -> List[str]:
+        """Returns a list of all markers associated with all args on this responder."""
+        markers = []
+        for arg in self._args:
+            markers.extend(arg.markers)
+        return markers
+
+    @property
     def is_argless(self) -> bool:
         """Returns True/False to indicate if the responder is argless."""
         return len(self._args) == 0
@@ -54,7 +63,7 @@ class Responder:
         """Returns a list of the primary arguments assigned to this responder."""
         primary_args = []
         for arg in self._args:
-            if isinstance(arg, responder_args.PrimaryArg):
+            if arg.is_primary:
                 primary_args.append(arg)
         return primary_args
 
@@ -75,44 +84,37 @@ class Responder:
         return True
 
     def _parse_response(self, response: str) -> Dict[str, Any]:
-        """Splits the response into into its respective arguments.
-        Note: Validation occurs here, in the argument setters."""
+        """Distributes the values in the response to their respective arguments.
+        Notes:
+        - Any present valueless arguments are set to True.
+        - All argument validation occurs in the argument setters."""
+
+        def word_is_marker(word: str) -> bool:
+            """Returns True/False to indicate if word is a marker for an arg on this responder."""
+            return word in self._all_markers
+
+        def get_arg_for_marker(marker: str) -> 'ResponderArg':
+            """Returns the ResponderArg corresponding to the marker specified."""
+            for arg in self._args:
+                if marker in arg.markers:
+                    return arg
+            raise ValueError('{marker} is not a marker for any args.'.format(marker=marker))
 
         words = response.split()  # Split the response into a list of words.
         current_arg = self.markerless_arg  # None if no markerless arg exists.
-        value_buffer = []  # List used to compile words for a value.
 
         # Cycle through each word in the response;
-        for word in words:
-            word_is_marker = False
-            for arg in self._args:
-                word_is_marker = word in arg.markers
-
-                # If we found a marker, finalise the previous value if exists, and reset the buffer;
-                if word_is_marker:
-                    current_arg = arg
-                    if len(value_buffer):
-                        current_arg.value = ' '.join(value_buffer)
-                    value_buffer = []
-
-                    # If the arg is valueless, adjust value to indicate it was found;
-                    if not arg.accepts_value:
-                        arg.value = True
-                        current_arg = None
-
-                    break  # Found, so stop searching args.
-
-            # Append value if not a marker, and an arg is collecting a value;
-            if word_is_marker is False:
-                # If we are getting a value before a marker, it is an orphan;
-                if current_arg is None:
-                    raise exceptions.OrphanValueError('Unexpected argument: {}'.format(word))
-                # Append the word to the value buffer;
-                value_buffer.append(word)
-
-        # Out of words, so write the final value buffer;
-        if len(value_buffer):
-            current_arg.value = ' '.join(value_buffer)
+        for current_word in words:
+            # Is the word a marker or part of a value?
+            # If it is a marker, write the buffer on the previous arg and update the current arg;
+            if word_is_marker(current_word):
+                current_arg.write_value_buffer() if current_arg is not None else ...
+                current_arg = get_arg_for_marker(current_word)
+            # If it is a value, just add it to the buffer;
+            else:
+                current_arg.buffer_value(current_word)
+        # We have run out of words, so write any residual buffer;
+        current_arg.write_value_buffer()
 
         # Return the kwds dict;
         return self._args_and_values
@@ -120,8 +122,12 @@ class Responder:
     def respond(self, response: Optional[str] = None) -> None:
         """Calls the function associated with the responder, passing any parsed arguments, if present."""
         self._app.stop_responding()  # Stop by default, and the function can then restart before next loop.
-        if response is None:
+        if self.is_argless:
             self._responder_func()
         else:
-            kwds = self._parse_response(response)
-            self._responder_func(**kwds)
+            func_sig = signature(self._responder_func)
+            if len(func_sig.parameters) > 0:
+                kwds = self._parse_response(response)
+                self._responder_func(**kwds)
+            else:
+                self._responder_func()

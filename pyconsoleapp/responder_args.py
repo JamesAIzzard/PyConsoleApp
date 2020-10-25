@@ -22,6 +22,7 @@ class ResponderArg(abc.ABC):
         self._markers: List[str] = markers if markers is not None else []
         self._validators: List[Callable[..., Any]] = validators if validators is not None else []
         self._value: Any = None
+        self._value_buffer = []
 
         # If we accept a value and have a default, set the value as default (using validators in setter).
         if accepts_value is True and default_value is not None:
@@ -37,6 +38,11 @@ class ResponderArg(abc.ABC):
         return self._name
 
     @property
+    def is_primary(self) -> bool:
+        """Returns True/False to indicate if the argument is primary."""
+        return isinstance(self, PrimaryArg)
+
+    @property
     def value(self) -> Any:
         """Returns the argument's value."""
         return self._value
@@ -46,12 +52,35 @@ class ResponderArg(abc.ABC):
         """Sets the argument's value, via any registered validators."""
         # First check we aren't trying to set an arbitrary value on a valueless arg;
         if not self.accepts_value and not isinstance(value, bool):
-            raise ValueError('Valuess args should only be given boolean values.')
+            raise ValueError('Valueless args should only be given boolean values.')
         # Now use the validators to set the value;
         temp_value = value
         for validator in self._validators:
             temp_value = validator(temp_value)
         self._value = temp_value
+
+    def buffer_value(self, value_fragment: Any) -> None:
+        """Adds the value fragment to the value buffer."""
+        # Raise exception if we try and buffer a valueless arg;
+        if not self._accepts_value:
+            raise exceptions.OrphanValueError(value_fragment)
+
+        self._value_buffer.append(value_fragment)
+
+    def write_value_buffer(self) -> None:
+        """Concatenates the value buffer and submits it for validation via the value setter."""
+        # If writing valueless, check no args in buffer and write True;
+        if not self._accepts_value and len(self._value_buffer) == 0:
+            self.value = True
+        # If writing valued arg, check buffer is not empty and write buffer. Raise an exception if we get an
+        # empty buffer on a primary valued arg;
+        elif self._accepts_value:
+            if len(self._value_buffer) > 0:
+                self.value = ' '.join(self._value_buffer)
+            elif self.is_primary:
+                raise exceptions.ArgMissingValueError('{arg_name}'.format(arg_name=self.name.replace('_', ' ')))
+        # Either way, clear the buffer;
+        self._value_buffer = []
 
     @property
     def accepts_value(self) -> bool:
@@ -75,22 +104,12 @@ class ResponderArg(abc.ABC):
 class PrimaryArg(ResponderArg):
     """Represents a mandatory Responder argument."""
 
-    def __init__(self, name: str, accepts_value: bool,
-                 markers: Optional[List[str]] = None,
-                 validators: Optional[List[Callable[..., Any]]] = None,
-                 default_value: Any = None,
-                 **kwds):
-        super().__init__(name=name, accepts_value=accepts_value, markers=markers, validators=validators,
-                         default_value=default_value, **kwds)
+    def __init__(self, **kwds):
+        super().__init__(**kwds)
 
 
 class OptionalArg(ResponderArg):
     """Represents an optional Responder argument."""
 
-    def __init__(self, name: str, accepts_value: bool,
-                 markers: Optional[List[str]] = None,
-                 validators: Optional[List[Callable[..., Any]]] = None,
-                 default_value: Any = None,
-                 **kwds):
-        super().__init__(name=name, accepts_value=accepts_value, markers=markers, validators=validators,
-                         default_value=default_value, **kwds)
+    def __init__(self, **kwds):
+        super().__init__(**kwds)

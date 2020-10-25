@@ -7,7 +7,7 @@ def validate_integer(value) -> int:
     """Raises ResponseValidationError if value is not an integer. Otherwise returns integer value."""
     try:
         int_value = int(value)
-    except TypeError:
+    except ValueError:
         raise pyconsoleapp.ResponseValidationError('Input must be an integer.')
     return int_value
 
