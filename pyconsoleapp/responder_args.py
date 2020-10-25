@@ -73,11 +73,11 @@ class ResponderArg(abc.ABC):
         if not self._accepts_value and len(self._value_buffer) == 0:
             self.value = True
         # If writing valued arg, check buffer is not empty and write buffer. Raise an exception if we get an
-        # empty buffer on a primary valued arg;
+        # empty buffer on a an arg without a default set;
         elif self._accepts_value:
             if len(self._value_buffer) > 0:
                 self.value = ' '.join(self._value_buffer)
-            elif self.is_primary:
+            elif self.value is None:
                 raise exceptions.ArgMissingValueError('{arg_name}'.format(arg_name=self.name.replace('_', ' ')))
         # Either way, clear the buffer;
         self._value_buffer = []
