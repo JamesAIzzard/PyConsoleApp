@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Callable, Optional
 
 from pyconsoleapp import Component, styles, builtin_components
 
@@ -34,7 +34,11 @@ class StandardPageComponent(Component):
                 header=self._header_component.printer(),
                 page_content=page_content)
 
-    def configure(self, page_title: Optional[str] = None, **kwds) -> None:
-        """Sets the page title."""
-        self._page_title = page_title
+    def configure(self, page_title: Optional[str] = None,
+                  go_back: Optional[Callable[[], None]] = None, **kwds) -> None:
+        """Configures the StandardPageComponent instance."""
+        if page_title is not None:
+            self._page_title = page_title
+        if go_back is not None:
+            self._header_component.configure(go_back=go_back)
         super().configure(**kwds)

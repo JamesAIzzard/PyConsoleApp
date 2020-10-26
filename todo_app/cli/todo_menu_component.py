@@ -41,7 +41,7 @@ class TodoMenuComponent(Component):
         self._todo_num_map: Dict[int, 'Todo'] = {}
 
         self._dash_component = self.delegate_state('dash', TodoDashComponent)
-        self._dash_component.configure(on_go_home=self.get_state_changer('main'))
+        self._dash_component.configure(on_back=self.get_state_changer('main'))
         self._editor_component = self.app.get_component('todos.edit', 'main', cli.TodoEditorComponent)
         self._page_component = self.use_component(StandardPageComponent)
         self._page_component.configure(page_title='Todo List')
@@ -81,13 +81,16 @@ class TodoMenuComponent(Component):
 
     @staticmethod
     def _on_add_todo(todo_text: str, today_flag: bool, importance_score: int) -> None:
+        """Handler function for when a todo_ is added."""
         service.add_todo(text=todo_text, today=today_flag, importance=importance_score)
 
     @staticmethod
     def _on_remove_todo(todo_number: int) -> None:
+        """Handler function for when a todo_ is removed."""
         service.remove_todo(todo_num=todo_number)
 
     def _on_edit_todo(self, todo_number: int) -> None:
+        """Handler function for when a todo_ is edited."""
         t = service.fetch_todo(todo_number)
         self._editor_component.configure(todo=t)
         exit_guard = self.app.guard_exit('todos.edit', cli.TodoSaveCheckComponent)
@@ -96,31 +99,25 @@ class TodoMenuComponent(Component):
 
 
 class TodoDashComponent(Component):
-    _template = u'''-home \u2502 -> Back to home.
-
-There are currently {todo_count} todo items.
+    _template = u'''There are currently {todo_count} todo items.
 '''
 
     def __init__(self, **kwds):
         super().__init__(**kwds)
-        self._on_go_home_: Optional[Callable[[], None]] = None
-        self.configure(responders=[
-            self.configure_responder(self._on_go_home, args=[
-                PrimaryArg(name='home', accepts_value=False, markers=['-home'])
-            ])
-        ])
+        self._on_back_: Optional[Callable[[], None]] = None
         self.page_component = self.use_component(StandardPageComponent)
-        self.page_component.configure(page_title='Dashboard')
+        self.page_component.configure(page_title='Dashboard', go_back=self._on_back)
 
     def printer(self, **kwds) -> str:
         return self.page_component.printer(
             page_content=self._template.format(todo_count=service.count_todos())
         )
 
-    def _on_go_home(self) -> None:
-        self._on_go_home_()
+    def _on_back(self) -> None:
+        """Used to replace nav functionality 'back' to instead change parent state back to main."""
+        self._on_back_()
 
-    def configure(self, on_go_home: Optional[Callable[[], None]] = None, **kwds) -> None:
-        if on_go_home is not None:
-            self._on_go_home_ = on_go_home
+    def configure(self, on_back: Optional[Callable[[], None]] = None, **kwds):
+        if on_back is not None:
+            self._on_back_ = on_back
         super().configure(**kwds)

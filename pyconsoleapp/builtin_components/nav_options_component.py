@@ -1,7 +1,10 @@
+from typing import Callable, Optional
+
 from pyconsoleapp import Component, PrimaryArg
 
 
 class NavOptionsComponent(Component):
+    """Navigation bar. Includes quit and back options."""
     _template = u'''Navigate Back   \u2502 -back, -b
 Quit            \u2502 -quit, -q'''
 
@@ -28,3 +31,8 @@ Quit            \u2502 -quit, -q'''
 
     def _on_quit(self) -> None:
         self.app.quit()
+
+    def configure(self, go_back: Optional[Callable[[], None]] = None, **kwds):
+        """Configures the nav bar instance."""
+        if go_back is not None:
+            self.__dict__['_on_back'] = go_back

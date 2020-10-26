@@ -7,6 +7,7 @@ todos: List['Todo'] = []
 
 
 def save_todo(todo: 'Todo') -> None:
+    """Stubs in save functionality of a database."""
     todo.saved = True
 
 

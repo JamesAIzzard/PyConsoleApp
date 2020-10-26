@@ -9,6 +9,7 @@ if TYPE_CHECKING:
 
 
 class TodoEditorComponent(Component):
+    """Component to edit the specified todo_."""
     _template = '''
 -save \u2502 -> Save the todo.
 
@@ -39,12 +40,11 @@ Update the todo and press enter:
         return self._page_component.printer(page_content=self._template)
 
     def _get_todo_text(self) -> str:
-        if self._todo is not None:
-            return self._todo.text
-        else:
-            return ''
+        """Returns the text from the current todo_."""
+        return self._todo.text
 
     def _on_enter(self, todo_text: str, today_flag: bool, importance_score: int = 1):
+        """Handler for when user presses enter."""
         self._todo.saved = False
         self._todo.text = todo_text
         self._todo.today = today_flag
@@ -56,6 +56,7 @@ Update the todo and press enter:
         service.save_todo(self._todo)
 
     def configure(self, todo: Optional['Todo'] = None, **kwds) -> None:
+        """Places the todo_ instance on the editor."""
         if todo is not None:
             self._todo = todo
         super().configure(**kwds)

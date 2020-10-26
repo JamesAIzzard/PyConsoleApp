@@ -86,8 +86,16 @@ class ConsoleApp:
         return component.get_state_primary_component(state)
 
     @property
-    def _current_primary_component(self) -> 'Component':
-        """Returns the primary component associated with the current app route, or a guard if one is active."""
+    def route_node_component(self, route: Optional[str] = None) -> 'Component':
+        """Returns the component associated with the route node specified, (or current route if not specified)."""
+        if route is None:
+            route = self.current_route
+        return self._route_component_map[route]
+
+    @property
+    def route_state_component(self, route: Optional[str] = None, state: Optional[str] = None) -> 'Component':
+        """Gets the route node componenent for the current route and returns that component's current state
+        component."""
         guard = self._get_active_guard()
         if guard is not None:
             return guard
@@ -158,11 +166,11 @@ class ConsoleApp:
         - If no marker responders are found, the active cli are searched for a markerless responder, which if
         found, is called with the response as an argument."""
         responder_was_found = False
-        current_primary_component = self._current_primary_component
+        current_route_state_component = self._current_route_state_component
         try:
             # If the response is empty, give each active component a chance to respond;
             if response.replace(' ', '') == '':
-                argless_responder = current_primary_component.active_argless_responder
+                argless_responder = current_route_state_component.active_argless_responder
                 if argless_responder:
                     argless_responder.respond()
                     responder_was_found = True
@@ -171,7 +179,7 @@ class ConsoleApp:
 
             # Otherwise, give any marker-only responders a chance;
             else:
-                responders = current_primary_component.active_marker_arg_responders
+                responders = current_route_state_component.active_marker_arg_responders
                 if len(responders):
                     for responder in responders:
                         if responder.check_marker_match(response):
@@ -182,7 +190,7 @@ class ConsoleApp:
 
             # Finally give each active component a chance to field a
             # markerless responder;
-            markerless_responder = current_primary_component.active_markerless_arg_responder
+            markerless_responder = current_route_state_component.active_markerless_arg_responder
             if markerless_responder:
                 markerless_responder.respond(response)
                 responder_was_found = True
@@ -222,10 +230,10 @@ class ConsoleApp:
 
             # The response has not been collected, draw the view and collect it;
             else:
-                component = self._current_primary_component
+                component = self._current_route_state_component
                 component.on_load()
                 # Check the component is still the right one after the load method ran.
-                if not component == self._current_primary_component:
+                if not component == self._current_route_state_component:
                     continue
                 # Record the route in history;
                 self._historise_route(self.current_route)

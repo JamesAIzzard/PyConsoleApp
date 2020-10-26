@@ -1,3 +1,5 @@
+from typing import Callable, Optional
+
 from pyconsoleapp import Component, builtin_components
 
 
@@ -22,3 +24,9 @@ class HeaderComponent(Component):
             single_hr='\u2500' * self.app.terminal_width,
             message_bar=self._message_bar.printer()
         )
+
+    def configure(self, go_back: Optional[Callable[[], None]] = None, **kwds):
+        """Configures the header component instnace."""
+        if go_back is not None:
+            self._nav_options.configure(go_back=go_back)
+        super().configure(**kwds)
