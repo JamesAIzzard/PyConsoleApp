@@ -1,14 +1,13 @@
 from textwrap import fill
 
-from pyconsoleapp import ConsoleAppComponent, configs, styles
+from pyconsoleapp import Component, configs, styles
 
 
-class MessageBarComponent(ConsoleAppComponent):
+class MessageBarComponent(Component):
     def __init__(self, app):
         super().__init__(app)
-        self.configure_printer(self.print_view)
 
-    def print_view(self):
+    def printer(self, **kwds) -> str:
         output = ''
         if self.app.error_message:
             output = output+'/!\\ Error:\n{}\n'.format(

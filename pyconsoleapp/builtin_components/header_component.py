@@ -1,15 +1,24 @@
-from pyconsoleapp import ConsoleAppComponent
+from pyconsoleapp import Component, builtin_components
 
-class HeaderComponent(ConsoleAppComponent):
 
-    def __init__(self, app):
-        super().__init__(app)
-        self.configure_printer(self.print_view)
+class HeaderComponent(Component):
+    """Page Header. Includes title bar, navigation bar and message bar."""
 
-    def print_view(self):
-        output = ''
-        output = output+self.app.fetch_component('title_bar_component').print()
-        output = output + self.app.fetch_component('nav_options_component').print()
-        output = output+self.app.fetch_component('single_hr_component').print()
-        output = output + self.app.fetch_component('message_bar_component').print()
-        return output
+    _template = u'''{title_bar}
+{nav_bar}
+{single_hr}
+{message_bar}'''
+
+    def __init__(self, **kwds):
+        super().__init__(**kwds)
+        self._title_bar = self.use_component(builtin_components.TitleBarComponent)
+        self._nav_options = self.use_component(builtin_components.NavOptionsComponent)
+        self._message_bar = self.use_component(builtin_components.MessageBarComponent)
+
+    def printer(self, **kwds) -> str:
+        return self._template.format(
+            title_bar=self._title_bar.printer(),
+            nav_bar=self._nav_options.printer(),
+            single_hr='\u2500' * self.app.terminal_width,
+            message_bar=self._message_bar.printer()
+        )
