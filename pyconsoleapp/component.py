@@ -1,8 +1,9 @@
 import abc
-from typing import List, Dict, Callable, Optional, Type, TypeVar, TYPE_CHECKING
+from typing import List, Callable, Optional, Type, TypeVar, TYPE_CHECKING
 
 from pyconsoleapp import exceptions
 from pyconsoleapp.responder import Responder
+from pyconsoleapp.route_node import RouteNode
 
 if TYPE_CHECKING:
     from pyconsoleapp import ConsoleApp
@@ -14,15 +15,12 @@ T = TypeVar('T')
 class Component(abc.ABC):
     """Base class for all application components."""
 
-    def __init__(self, app: 'ConsoleApp', **kwds):
+    def __init__(self, app: 'ConsoleApp', route_node: Optional['RouteNode'] = None, **kwds):
         self._app = app
-        self._current_state: str = 'main'
-        self._local_responders_: List['Responder'] = []
+        self._route_node: Optional['RouteNode'] = route_node
+        self._local_responders: List['Responder'] = []  # 'local' indicates on *this* instance, not children.
         self._get_view_prefill: Optional[Callable[..., str]] = None
-        self._local_components: List['Component'] = []
-        self._state_component_map: Dict[str, 'Component'] = {
-            "main": self
-        }
+        self._child_components: List['Component'] = []
 
     @property
     def app(self) -> 'ConsoleApp':
@@ -42,7 +40,7 @@ class Component(abc.ABC):
         # Check there are not multiple local ArglessResponders or markerless args;
         argless_found = False
         markerless_found = False
-        for responder in self._local_responders_:
+        for responder in self._local_responders:
             if responder.is_argless:
                 if argless_found is False:
                     argless_found = True
@@ -55,25 +53,25 @@ class Component(abc.ABC):
                     raise exceptions.DuplicateMarkerlessArgError
 
     @property
-    def _states(self) -> List[str]:
-        """Returns a list of all the component's states."""
-        return list(self._state_component_map.keys())
+    def route_states(self) -> List[str]:
+        """Returns a list of all the route's states."""
+        return self._route_node.states
 
     def _validate_state(self, state: str) -> None:
         """Validates the specified state name."""
-        if state not in self._states:
+        if state not in self.route_states:
             raise exceptions.StateNotFoundError
 
     @property
     def current_state(self) -> str:
         """Returns the component's current state."""
-        return self._current_state
+        return self._route_node.current_state
 
     @current_state.setter
     def current_state(self, state: str) -> None:
         """Sets the component's current state."""
         self._validate_state(state)
-        self._current_state = state
+        self._route_node.current_state = state
 
     def get_state_changer(self, new_state: str) -> Callable[[], None]:
         def changer():
@@ -81,56 +79,31 @@ class Component(abc.ABC):
 
         return changer
 
-    @property
-    def local_components(self) -> List['Component']:
-        """Returns the child components for this component."""
-        return self._local_components
-
-    @property
-    def active_components(self) -> List['Component']:
-        """Returns the components associated with the current state."""
-        return self._get_state_components(self.current_state)
-
-    @property
-    def active_primary_component(self) -> 'Component':
-        """Returns the primary component associated with the current state, self if the state has not
-        been delegated."""
-        return self._state_component_map[self.current_state]
-
-    def get_state_primary_component(self, state: str) -> 'Component':
-        """Returns the primary component associated with the specified state."""
-        self._validate_state(state)
-        return self._state_component_map[state]
-
-    def _get_state_components(self, state: str) -> List['Component']:
-        """Returns the components associated with the specified state."""
-        self._validate_state(state)
-        components = []
-        # Grab the parent component for the state;
-        primary_component = self.get_state_primary_component(state)
-        # First add any components directly used by the primary, and the primary itself.
-        components.append(primary_component)
-        components.extend(primary_component.local_components)
-        # Now recursively add their active components;
-        for component in primary_component.local_components:
-            components.extend(component.active_components)
-
-        return components
+    # @property
+    # def active_components(self) -> List['Component']:
+    #     """Returns the components associated with the current state."""
+    #     components = [self.get_state_component()]
+    #     components.extend(self.get_state_component().active_components)
+    #     return components
+    #
+    # def get_state_component(self, state: Optional[str] = None) -> 'Component':
+    #     """Returns the primary component associated with the specified state. If no state is specified,
+    #     returns the current state component."""
+    #     if state is None:
+    #         state = self.current_state
+    #     else:
+    #         self._validate_state(state)
+    #     return self._sibling_components[state]
 
     def configure_responder(self, responder_func: Callable[..., None], args: Optional[List['ResponderArg']] = None):
         """Returns the correct responder type, with it's app reference configured."""
         return Responder(app=self.app, func=responder_func, args=args)
 
     @property
-    def _local_responders(self) -> List['Responder']:
-        """Returns the list of responders local to this component."""
-        return self._local_responders_
-
-    @property
-    def _active_responders(self) -> List['Responder']:
+    def active_responders(self) -> List['Responder']:
         """Returns a list of active responders for the current state combo."""
         responders = []
-        for component in self.active_components:
+        for component in self._route_node.active_components:
             responders.extend(component._local_responders)
         return responders
 
@@ -138,7 +111,7 @@ class Component(abc.ABC):
     def active_argless_responder(self) -> Optional['Responder']:
         """Returns the argless responder for this state combo, if exists, otherwise returns None."""
         argless_responder = None
-        for responder in self._active_responders:
+        for responder in self.active_responders:
             if responder.is_argless:
                 if argless_responder is None:
                     argless_responder = responder
@@ -150,7 +123,7 @@ class Component(abc.ABC):
     def active_markerless_arg_responder(self) -> Optional['Responder']:
         """Returns the component's markerless arg responder, if exists, otherwise returns None."""
         markerless_arg_responder = None
-        for responder in self._active_responders:
+        for responder in self.active_responders:
             if responder.has_markerless_arg:
                 if markerless_arg_responder is None:
                     markerless_arg_responder = responder
@@ -162,7 +135,7 @@ class Component(abc.ABC):
     def active_marker_arg_responders(self) -> List['Responder']:
         """Returns a list of the component's marker responders."""
         mars = []
-        for responder in self._active_responders:
+        for responder in self.active_responders:
             if not responder.has_markerless_arg and not responder.is_argless:
                 mars.append(responder)
         return mars
@@ -177,14 +150,14 @@ class Component(abc.ABC):
     def delegate_state(self, state: str, component_class: Type[T]) -> T:
         """Assigns the specified component state to another component and returns the component instance."""
         component = component_class(app=self.app)
-        self._state_component_map[state] = component
+        self._sibling_components[state] = component
         return component
 
     def use_component(self, component_class: Type[T]) -> T:
         """Includes the child component in this component instance and returns the child instance."""
         component = component_class(app=self.app)
-        self._local_components.append(component)
-        list(set(self._local_components))  # Use set() to prevent duplication.
+        self._child_components.append(component)
+        list(set(self._child_components))  # Use set() to prevent duplication.
         return component
 
     def configure(self, responders: Optional[List['Responder']] = None,
@@ -192,7 +165,7 @@ class Component(abc.ABC):
                   **kwds) -> None:
         """Sets local responders to list provided, if populated."""
         if responders is not None:
-            self._local_responders_.extend(responders)
+            self._local_responders.extend(responders)
         if get_prefill is not None:
             self._get_view_prefill = get_prefill
         self._validate()

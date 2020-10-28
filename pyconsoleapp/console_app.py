@@ -34,7 +34,8 @@ class ConsoleApp:
         self._response: Optional[str] = None
         self._current_route: Optional[str] = None
         self._route_history: List[str] = []
-        self._route_component_map: Dict[str, Optional['Component']] = {}
+        self._route_component_map: Dict[str, 'Component'] = {}
+        self._initialising: bool = False
         self._route_exit_guard_map: Dict[str, 'GuardComponent'] = {}
         self._route_entrance_guard_map: Dict[str, 'GuardComponent'] = {}
         self._finished_processing_response: bool = False
@@ -64,43 +65,43 @@ class ConsoleApp:
             raise KeyError('The route {} was not recognised.'.format(route))
 
     def _validate_route(self, route: str):
+        """Raises an exception if the route is not in the set of known routes."""
         if route not in self._route_component_map:
             raise exceptions.InvalidRouteError
 
     def _historise_route(self, route: str) -> None:
+        """Adds the route to the route history stack, if it is not already the same as the last item."""
         # Save the current route to the history;
+        self._validate_route(route)
         if len(self._route_history) > 0 and not self._route_history[-1] == route:
             self._route_history.append(route)
         # Make sure the history doesn't get too long;
         while len(self._route_history) > configs.route_history_length:
             self._route_history.pop(0)
 
-    def get_component(self, route: str, state: str, component_class: Type[T]) -> T:
-        """Gets the component associated with the specified route and state. Initialising it if the
-        state has not yet been assigned its component instance (if app is mid configuration)."""
-        self._validate_route(route)
-        if self._route_component_map[route] is None:
-            self._route_component_map[route] = component_class(app=self)
+    def get_component(self, component_class: Type[T], route: str, state: Optional[str] = None) -> T:
+        """Gets the component associated with the specified route and state. If state is not
+        specified, the component corresponding to the route's current state is returned.
+
+        Raises:
+            PartiallyInitialisedError: To indicate the application is still initialising components,
+                so we can't start retrieving them yet.
+        """
+        if self._initialising is True:
+            raise exceptions.PartiallyInitialisedError
+        self._validate_route(route)  # Check the route is recognised;
+        # Grab the component registered the route;
         component = self._route_component_map[route]
         assert isinstance(component, component_class)
-        return component.get_state_primary_component(state)
+        return component.get_state_component(state)
 
-    @property
-    def route_node_component(self, route: Optional[str] = None) -> 'Component':
-        """Returns the component associated with the route node specified, (or current route if not specified)."""
-        if route is None:
-            route = self.current_route
-        return self._route_component_map[route]
-
-    @property
-    def route_state_component(self, route: Optional[str] = None, state: Optional[str] = None) -> 'Component':
-        """Gets the route node componenent for the current route and returns that component's current state
-        component."""
-        guard = self._get_active_guard()
-        if guard is not None:
-            return guard
-        else:
-            return self._route_component_map[self.current_route].active_primary_component
+    def _get_active_component(self) -> 'Component':
+        """Returns the component/guard corresponding with current application state."""
+        # Check for active guard;
+        component = self._get_active_guard()
+        if component is not None:
+            return component
+        return self.get_component(Component, self.current_route)
 
     def _get_active_guard(self) -> Optional['GuardComponent']:
         """Returns the active guard if exists, otherwise returns None."""
@@ -166,11 +167,11 @@ class ConsoleApp:
         - If no marker responders are found, the active cli are searched for a markerless responder, which if
         found, is called with the response as an argument."""
         responder_was_found = False
-        current_route_state_component = self._current_route_state_component
+        current_component = self._get_active_component()
         try:
             # If the response is empty, give each active component a chance to respond;
             if response.replace(' ', '') == '':
-                argless_responder = current_route_state_component.active_argless_responder
+                argless_responder = current_component.active_argless_responder
                 if argless_responder:
                     argless_responder.respond()
                     responder_was_found = True
@@ -179,7 +180,7 @@ class ConsoleApp:
 
             # Otherwise, give any marker-only responders a chance;
             else:
-                responders = current_route_state_component.active_marker_arg_responders
+                responders = current_component.active_marker_arg_responders
                 if len(responders):
                     for responder in responders:
                         if responder.check_marker_match(response):
@@ -190,7 +191,7 @@ class ConsoleApp:
 
             # Finally give each active component a chance to field a
             # markerless responder;
-            markerless_responder = current_route_state_component.active_markerless_arg_responder
+            markerless_responder = current_component.active_markerless_arg_responder
             if markerless_responder:
                 markerless_responder.respond(response)
                 responder_was_found = True
@@ -230,10 +231,10 @@ class ConsoleApp:
 
             # The response has not been collected, draw the view and collect it;
             else:
-                component = self._current_route_state_component
+                component = self._get_active_component()
                 component.on_load()
                 # Check the component is still the right one after the load method ran.
-                if not component == self._current_route_state_component:
+                if not component == self._get_active_component():
                     continue
                 # Record the route in history;
                 self._historise_route(self.current_route)
@@ -251,14 +252,14 @@ class ConsoleApp:
         """Returns the current route to the previous route in the route history."""
         self.current_route = self._route_history.pop()
 
-    def configure(self, routes: Optional[Dict[str, Type['Component']]] = None, **kwds) -> None:
+    def configure(self, routes: Optional[Dict[str, Type['Component']]] = None,
+                  **kwds) -> None:  # noqa: Ignore unused kwds warning.
         """Configures the application routes and swallows any remaining keywords."""
         if routes is not None:
-            for route in routes:
-                self._route_component_map[route] = None
-            for route, component_class in routes.items():
-                if self._route_component_map[route] is None:
-                    self._route_component_map[route] = component_class(app=self)
+            self._initialising = True
+            ...
+            self._initialising = False
+        # Check we don't have a superclass that also wants configuration;
         assert not hasattr(super(), 'configure')
 
     @staticmethod

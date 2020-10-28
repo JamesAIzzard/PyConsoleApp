@@ -42,11 +42,12 @@ class TodoMenuComponent(Component):
 
         self._dash_component = self.delegate_state('dash', TodoDashComponent)
         self._dash_component.configure(on_back=self.get_state_changer('main'))
-        self._editor_component = self.app.get_component('todos.edit', 'main', cli.TodoEditorComponent)
+        self._editor_component: Optional['cli.TodoEditorComponent'] = None
         self._page_component = self.use_component(StandardPageComponent)
         self._page_component.configure(page_title='Todo List')
 
     def on_load(self) -> None:
+        self._editor_component = self.app.get_component(cli.TodoEditorComponent, 'todos.edit', 'main')
         self._todo_num_map = utils.make_numbered_map(service.todos)
 
     def printer(self):
