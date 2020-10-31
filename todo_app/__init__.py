@@ -11,4 +11,4 @@ app.configure(routes={
     'todos.edit': cli.TodoEditorComponent
 })
 # Configure the route to start with;
-app.current_route = 'todos'e
+app.current_route = 'todos'

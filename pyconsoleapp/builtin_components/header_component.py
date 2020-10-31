@@ -21,7 +21,7 @@ class HeaderComponent(Component):
         return self._template.format(
             title_bar=self._title_bar.printer(),
             nav_bar=self._nav_options.printer(),
-            single_hr='\u2500' * self.app.terminal_width,
+            single_hr=self.single_hr,
             message_bar=self._message_bar.printer()
         )
 

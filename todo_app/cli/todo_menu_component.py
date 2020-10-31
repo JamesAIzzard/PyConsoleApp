@@ -28,13 +28,16 @@ class TodoMenuComponent(Component):
                 OptionalArg(name='today_flag', accepts_value=False, markers=['--today', '--t']),
                 OptionalArg(name='importance_score', accepts_value=True, markers=['--importance', '--i'],
                             validators=[validators.validate_integer, service.validate_importance_score],
-                            default_value=1)]),
+                            default_value=1)
+            ]),
             self.configure_responder(self._on_remove_todo, args=[
                 PrimaryArg(name='todo_number', accepts_value=True, markers=['-remove', '-r'],
-                           validators=[self._validate_todo_num])]),
+                           validators=[self._validate_todo_num])
+            ]),
             self.configure_responder(self._on_edit_todo, args=[
                 PrimaryArg(name='todo_number', accepts_value=True, markers=['-edit', '-e'],
-                           validators=[self._validate_todo_num])]),
+                           validators=[self._validate_todo_num])
+            ]),
             self.configure_responder(self.get_state_changer('dash'), args=None)
         ])
 
@@ -53,7 +56,7 @@ class TodoMenuComponent(Component):
     def printer(self):
         return self._page_component.printer(page_content=self._template.format(
             todos=self._todo_list_view,
-            single_hr=u'\u2500' * self.app.terminal_width))
+            single_hr=self.single_hr))
 
     @property
     def _todo_list_view(self) -> str:

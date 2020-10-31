@@ -1,7 +1,7 @@
 import os
 from typing import Dict, List, Optional, TYPE_CHECKING, Type, TypeVar
 
-from pyconsoleapp import exceptions, configs
+from pyconsoleapp import exceptions, configs, component
 
 if os.name == 'nt':
     from pyautogui import write  # noqa
@@ -31,6 +31,7 @@ def _write_to_screen(view: str, prefill: Optional[str]):
 
 class ConsoleApp:
     def __init__(self, name):
+        self._name: str = name
         self._response: Optional[str] = None
         self._current_route: Optional[str] = None
         self._route_history: List[str] = []
@@ -40,7 +41,6 @@ class ConsoleApp:
         self._route_entrance_guard_map: Dict[str, 'GuardComponent'] = {}
         self._finished_processing_response: bool = False
         self._quit: bool = False
-        self._name: str = name
         self.error_message: Optional[str] = None
         self.info_message: Optional[str] = None
 
@@ -91,17 +91,17 @@ class ConsoleApp:
             raise exceptions.PartiallyInitialisedError
         self._validate_route(route)  # Check the route is recognised;
         # Grab the component registered the route;
-        component = self._route_component_map[route]
-        assert isinstance(component, component_class)
-        return component.get_state_component(state)
+        c = self._route_component_map[route].get_sibling(state)
+        assert isinstance(c, component_class)
+        return c
 
     def _get_active_component(self) -> 'Component':
         """Returns the component/guard corresponding with current application state."""
         # Check for active guard;
-        component = self._get_active_guard()
-        if component is not None:
-            return component
-        return self.get_component(Component, self.current_route)
+        c = self._get_active_guard()
+        if c is not None:
+            return c
+        return self.get_component(component.Component, self.current_route)
 
     def _get_active_guard(self) -> Optional['GuardComponent']:
         """Returns the active guard if exists, otherwise returns None."""
@@ -231,16 +231,17 @@ class ConsoleApp:
 
             # The response has not been collected, draw the view and collect it;
             else:
-                component = self._get_active_component()
-                component.on_load()
+                active_component = self._get_active_component()
+                active_component.on_load()
                 # Check the component is still the right one after the load method ran.
-                if not component == self._get_active_component():
+                if not active_component == self._get_active_component():
                     continue
                 # Record the route in history;
                 self._historise_route(self.current_route)
                 # Draw the view;
                 self.clear_console()
-                self._response = _write_to_screen(view=component.printer(), prefill=component.get_view_prefill())
+                self._response = _write_to_screen(view=active_component.printer(),
+                                                  prefill=active_component.get_view_prefill())
 
     def go_to(self, route: str) -> None:
         """Navigates the application the specified route."""
@@ -257,7 +258,8 @@ class ConsoleApp:
         """Configures the application routes and swallows any remaining keywords."""
         if routes is not None:
             self._initialising = True
-            ...
+            for route, component_class in routes.items():
+                self._route_component_map[route] = component_class(app=self)
             self._initialising = False
         # Check we don't have a superclass that also wants configuration;
         assert not hasattr(super(), 'configure')

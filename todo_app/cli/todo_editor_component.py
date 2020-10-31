@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 class TodoEditorComponent(Component):
     """Component to edit the specified todo_."""
-    _template = '''
+    _template = u'''
 -save \u2502 -> Save the todo.
 
 Update the todo and press enter:
@@ -24,10 +24,11 @@ Update the todo and press enter:
                 PrimaryArg(name='todo_text', accepts_value=True, markers=None),
                 PrimaryArg(name='today_flag', accepts_value=False, markers=['--today', '--t']),
                 OptionalArg(name='importance_score', accepts_value=True, markers=['--importance', '--i'],
-                            validators=[cli.service.validate_importance_score], default_value=1)]),
+                            validators=[cli.service.validate_importance_score], default_value=1)
+            ]),
             self.configure_responder(self._on_save, args=[
-                PrimaryArg(name='save', accepts_value=False, markers=['-save'])]
-                                     )
+                PrimaryArg(name='save', accepts_value=False, markers=['-save'])
+            ])
         ])
         self.configure(get_prefill=self._get_todo_text)
 
