@@ -75,6 +75,11 @@ class Responder:
             kwds[arg.name] = arg.value
         return kwds
 
+    def _reset_args(self) -> None:
+        """Resets the associated ResponderArg values."""
+        for arg in self._args:
+            arg.reset()
+
     def check_marker_match(self, response: str) -> bool:
         """Returns True/False to indicate if the given response matches this responder."""
         split_response = set(response.split())
@@ -132,3 +137,4 @@ class Responder:
                 self._responder_func(**kwds)
             else:
                 self._responder_func()
+            self._reset_args()

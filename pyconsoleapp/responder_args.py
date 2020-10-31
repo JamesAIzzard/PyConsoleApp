@@ -21,14 +21,19 @@ class ResponderArg(abc.ABC):
         self._accepts_value = accepts_value
         self._markers: List[str] = markers if markers is not None else []
         self._validators: List[Callable[..., Any]] = validators if validators is not None else []
+        self._default_value: Optional[Any] = default_value
         self._value: Any = None
         self._value_buffer = []
 
+        self._init_value()
+
+    def _init_value(self) -> None:
+        """Initialises/resets the argument value"""
         # If we accept a value and have a default, set the value as default (using validators in setter).
-        if accepts_value is True and default_value is not None:
-            self.value = default_value
+        if self.accepts_value is True and self._default_value is not None:
+            self.value = self._default_value
         # If we don't accept a value;
-        elif accepts_value is False:
+        elif self.accepts_value is False:
             # Valuless values start at False;
             self.value = False
 
@@ -99,6 +104,10 @@ class ResponderArg(abc.ABC):
             return False
         else:
             return True
+
+    def reset(self) -> None:
+        """Resets the arg value."""
+        self._init_value()
 
 
 class PrimaryArg(ResponderArg):
