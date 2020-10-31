@@ -91,16 +91,16 @@ class ConsoleApp:
             raise exceptions.PartiallyInitialisedError
         self._validate_route(route)  # Check the route is recognised;
         # Grab the component registered the route;
-        c = self._route_component_map[route].get_sibling(state)
-        assert isinstance(c, component_class)
-        return c
+        comp = self._route_component_map[route].get_sibling(state)
+        assert isinstance(comp, component_class)
+        return comp
 
     def _get_active_component(self) -> 'Component':
         """Returns the component/guard corresponding with current application state."""
         # Check for active guard;
-        c = self._get_active_guard()
-        if c is not None:
-            return c
+        active_guard = self._get_active_guard()
+        if active_guard is not None:
+            return active_guard
         return self.get_component(component.Component, self.current_route)
 
     def _get_active_guard(self) -> Optional['GuardComponent']:

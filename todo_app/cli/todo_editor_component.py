@@ -11,7 +11,10 @@ if TYPE_CHECKING:
 class TodoEditorComponent(Component):
     """Component to edit the specified todo_."""
     _template = u'''
--save \u2502 -> Save the todo.
+[todo text]
+    --today                   \u2502 -> Mark the todo as 'complete today'.
+    --importance [level: 1-3] \u2502 -> Give the todo an importance rating.
+    --save                    \u2502 -> Save the todo.
 
 Update the todo and press enter:
 '''
@@ -22,13 +25,11 @@ Update the todo and press enter:
         self.configure(responders=[
             self.configure_responder(self._on_enter, args=[
                 PrimaryArg(name='todo_text', accepts_value=True, markers=None),
-                PrimaryArg(name='today_flag', accepts_value=False, markers=['--today', '--t']),
-                OptionalArg(name='importance_score', accepts_value=True, markers=['--importance', '--i'],
-                            validators=[cli.service.validate_importance_score], default_value=1)
+                OptionalArg(name='today', accepts_value=False, markers=['--today']),
+                OptionalArg(name='importance_score', accepts_value=True, markers=['--importance'],
+                            validators=[cli.service.validate_importance_score], default_value=1),
+                OptionalArg(name='save', accepts_value=False, markers=['--save'])
             ]),
-            self.configure_responder(self._on_save, args=[
-                PrimaryArg(name='save', accepts_value=False, markers=['-save'])
-            ])
         ])
         self.configure(get_prefill=self._get_todo_text)
 
@@ -44,12 +45,14 @@ Update the todo and press enter:
         """Returns the text from the current todo_."""
         return self._todo.text
 
-    def _on_enter(self, todo_text: str, today_flag: bool, importance_score: int = 1):
+    def _on_enter(self, todo_text: str, today: bool, importance_score: int, save: bool):
         """Handler for when user presses enter."""
         self._todo.saved = False
         self._todo.text = todo_text
-        self._todo.today = today_flag
+        self._todo.today = today
         self._todo.importance = importance_score
+        if save is True:
+            service.save_todo(self._todo)
         self.app.go_to('todos')
 
     def _on_save(self) -> None:

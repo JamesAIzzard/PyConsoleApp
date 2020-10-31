@@ -11,6 +11,7 @@ class GuardComponent(Component, abc.ABC):
         super().__init__(**kwds)
         self._should_activate: Callable[[], bool] = lambda: True
 
+    @property
     def activated(self) -> bool:
         """Returns True/False to indicate if the function should be activated."""
         return self._should_activate()

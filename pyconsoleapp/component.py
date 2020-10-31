@@ -141,10 +141,10 @@ class Component(abc.ABC):
     def active_markerless_arg_responder(self) -> Optional['Responder']:
         """Returns the component's markerless arg responder, if exists, otherwise returns None."""
         markerless_arg_responder = None
-        for responder in self.active_responders:
-            if responder.has_markerless_arg:
+        for active_responder in self.active_responders:
+            if active_responder.has_markerless_arg:
                 if markerless_arg_responder is None:
-                    markerless_arg_responder = responder
+                    markerless_arg_responder = active_responder
                 elif markerless_arg_responder is not None:
                     raise exceptions.DuplicateMarkerlessArgError
         return markerless_arg_responder
@@ -153,9 +153,9 @@ class Component(abc.ABC):
     def active_marker_arg_responders(self) -> List['Responder']:
         """Returns a list of the component's marker responders."""
         mars = []
-        for responder in self.active_responders:
-            if not responder.has_markerless_arg and not responder.is_argless:
-                mars.append(responder)
+        for active_responder in self.active_responders:
+            if not active_responder.has_markerless_arg and not active_responder.is_argless:
+                mars.append(active_responder)
         return mars
 
     def get_view_prefill(self) -> Optional[str]:
@@ -184,7 +184,9 @@ class Component(abc.ABC):
                   **kwds) -> None:
         """Implements post-initialistion configuration of the component."""
         if responders is not None:
-            self._local_responders.extend(responders)
+            for r in responders:
+                if r not in self._local_responders:
+                    self._local_responders.append(r)
 
         if get_prefill is not None:
             self._get_view_prefill = get_prefill

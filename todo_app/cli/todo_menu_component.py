@@ -1,4 +1,4 @@
-from typing import Dict, Callable, Optional, TYPE_CHECKING
+from typing import Dict, Optional, TYPE_CHECKING
 
 from pyconsoleapp import Component, PrimaryArg, OptionalArg, validators, utils, ResponseValidationError, styles
 from pyconsoleapp.builtin_components import StandardPageComponent
@@ -108,20 +108,10 @@ class TodoDashComponent(Component):
 
     def __init__(self, **kwds):
         super().__init__(**kwds)
-        self._on_back_: Optional[Callable[[], None]] = None
         self.page_component = self.use_component(StandardPageComponent)
-        self.page_component.configure(page_title='Dashboard', go_back=self._on_back)
+        self.page_component.configure(page_title='Dashboard', go_back=self.get_state_changer("main"))
 
     def printer(self, **kwds) -> str:
         return self.page_component.printer(
             page_content=self._template.format(todo_count=service.count_todos())
         )
-
-    def _on_back(self) -> None:
-        """Used to replace nav functionality 'back' to instead change parent state back to main."""
-        self._on_back_()
-
-    def configure(self, on_back: Optional[Callable[[], None]] = None, **kwds):
-        if on_back is not None:
-            self._on_back_ = on_back
-        super().configure(**kwds)
