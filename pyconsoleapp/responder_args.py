@@ -14,12 +14,13 @@ class ResponderArg(abc.ABC):
                  **kwds):
 
         if accepts_value is False:
-            if validators is not None or default_value is not None:
+            if validators is not None or default_value is not None:  # No validation or defaults on valuless args.
                 raise exceptions.InvalidArgConfigError
 
         self._name: str = name
         self._accepts_value = accepts_value
         self._markers: List[str] = markers if markers is not None else []
+        self.marker_found: bool = False
         self._validators: List[Callable[..., Any]] = validators if validators is not None else []
         self._default_value: Optional[Any] = default_value
         self._value: Any = None
@@ -74,17 +75,27 @@ class ResponderArg(abc.ABC):
 
     def write_value_buffer(self) -> None:
         """Concatenates the value buffer and submits it for validation via the value setter."""
-        # If writing valueless, check no args in buffer and write True;
-        if not self._accepts_value and len(self._value_buffer) == 0:
-            self.value = True
-        # If writing valued arg, check buffer is not empty and write buffer. Raise an exception if we get an
-        # empty buffer on a an arg without a default set;
+        # If don't accept values;
+        if not self._accepts_value:
+            # Check the buffer is empty and write true, otherwise shout;
+            if len(self._value_buffer) == 0:
+                self.value = True
+            else:
+                raise exceptions.OrphanValueError(' '.join(self._value_buffer))
+        # If we do accept values;
         elif self._accepts_value:
-            if len(self._value_buffer) > 0:
+            # If the buffer is empty;
+            if len(self._value_buffer) == 0:
+                # Shout if the marker has been found but buffer is empty (never OK for an valued arg);
+                if self.marker_found:
+                    raise exceptions.ArgMissingValueError('{arg_name}'.format(arg_name=self.name.replace('_', ' ')))
+                # Shout if markerless primary and no default;
+                if self.is_markerless and self.is_primary and self._default_value is None:
+                    raise exceptions.ArgMissingValueError('{arg_name}'.format(arg_name=self.name.replace('_', ' ')))
+            # Buffer is not empty;
+            else:
                 self.value = ' '.join(self._value_buffer)
-            elif self.value is None:
-                raise exceptions.ArgMissingValueError('{arg_name}'.format(arg_name=self.name.replace('_', ' ')))
-        # Either way, clear the buffer;
+        # Whatever happened, clear the buffer;
         self._value_buffer = []
 
     @property
@@ -107,6 +118,7 @@ class ResponderArg(abc.ABC):
 
     def reset(self) -> None:
         """Resets the arg value."""
+        self.marker_found = False
         self._init_value()
 
 

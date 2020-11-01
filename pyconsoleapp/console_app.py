@@ -225,6 +225,9 @@ class ConsoleApp:
         while not self._quit:
             # If response has been collected;
             if self._response is not None:
+                # Reset the error and info messages;
+                self.error_message = None
+                self.info_message = None
                 # Do the processing;
                 self._process_response(self._response)
                 self._clear_response()
@@ -236,7 +239,7 @@ class ConsoleApp:
                 # Check the component is still the right one after the load method ran.
                 if not active_component == self._get_active_component():
                     continue
-                # Record the route in history;
+                #
                 self._historise_route(self.current_route)
                 # Draw the view;
                 self.clear_console()

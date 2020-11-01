@@ -50,15 +50,17 @@ class DuplicateArglessResponderError(PyConsoleAppError):
     """Indicating there are multiple argless responders assigned to this component state."""
 
 
+class InvalidArgConfigError(PyConsoleAppError):
+    """Indicating that the argument configuration is invald."""
+
+
 class ResponseValidationError(PyConsoleAppError):
     """Indicating the response did not pass validation."""
 
     def __init__(self, reason: Optional[str] = None, **kwds):
+        if reason is None:
+            reason = 'The response was invalid.'
         self.reason: Optional[str] = reason
-
-
-class InvalidArgConfigError(PyConsoleAppError):
-    """Indicating that the argument configuration is invald."""
 
 
 class ArgMissingValueError(ResponseValidationError):

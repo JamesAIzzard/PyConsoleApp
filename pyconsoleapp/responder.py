@@ -116,6 +116,7 @@ class Responder:
                 if current_arg is not None:
                     current_arg.write_value_buffer()
                 current_arg = get_arg_for_marker(current_word)
+                current_arg.marker_found = True
             # If it is a value, just add it to the buffer;
             else:
                 current_arg.buffer_value(current_word)
