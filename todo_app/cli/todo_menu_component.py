@@ -48,8 +48,10 @@ class TodoMenuComponent(Component):
         self._page_component = self.use_component(StandardPageComponent)
         self._page_component.configure(page_title='Todo List')
 
-    def on_load(self) -> None:
+    def on_first_load(self) -> None:
         self._editor_component = self.app.get_component(cli.TodoEditorComponent, 'todos.edit', 'main')
+
+    def on_load(self) -> None:
         self._todo_num_map = utils.make_numbered_map(service.todos)
 
     def printer(self):

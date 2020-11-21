@@ -23,7 +23,7 @@ class Component(abc.ABC):
         self._child_components: List['Component'] = []
         self._local_responders: List['Responder'] = []  # 'local' indicates on *this* instance, not children.
         self._get_view_prefill: Optional[Callable[..., str]] = None
-        self.loaded_once: bool = False
+        self.loaded_once: bool = False  # Indicates first-time load status.
 
     @property
     def app(self) -> 'ConsoleApp':
