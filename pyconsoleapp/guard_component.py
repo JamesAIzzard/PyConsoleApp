@@ -16,10 +16,6 @@ class GuardComponent(Component, abc.ABC):
         """Returns True/False to indicate if the function should be activated."""
         return self._should_activate()
 
-    def stop_guarding(self) -> None:
-        """Clears self from the app's guard registers."""
-        self.app.clear_guard(self)
-
     def configure(self, should_activate: Optional[Callable[[], bool]] = None, **kwds) -> None:
         if should_activate is not None:
             self._should_activate = should_activate

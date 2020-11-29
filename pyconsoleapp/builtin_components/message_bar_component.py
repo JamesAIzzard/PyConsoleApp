@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pyconsoleapp import Component, styles
 
 
@@ -8,20 +10,34 @@ class MessageBarComponent(Component):
     _info_template = '[i] Info: {message}'
     _error_template = '/!\\ Error: {message}'
 
-    def __init__(self, app):
-        super().__init__(app)
+    def __init__(self, info_message: Optional[str] = None, error_message: Optional[str] = None, **kwds):
+        super().__init__(**kwds)
+        self._error_message: Optional[str] = info_message
+        self._info_message: Optional[str] = error_message
+
+    def set_error_message(self, message: str) -> None:
+        """Sets the component's error message."""
+        if self._error_message.replace(' ', '') == '':
+            message = "An error occurred."
+        self._error_message = message
+
+    def set_info_message(self, message: str) -> None:
+        """Sets the component's info message."""
+        self._info_message = message
 
     def printer(self, **kwds) -> str:
-        if self.app.error_message is not None:
-            if self.app.error_message.replace(' ', '') == '':
-                self.app.error_message = "An error occurred."
+        if self._error_message is not None:
+            message = self._error_message  # Reset the error message;
+            self._error_message = None
             return self._main_template.format(
-                content=styles.fore(self._error_template.format(message=self.app.error_message), 'red'),
+                content=styles.fore(self._error_template.format(message=self._error_message), 'red'),
                 hr=self.single_hr
             )
-        elif self.app.info_message is not None and not self.app.info_message.replace(' ', '') == '':
+        elif self._info_message is not None and not self._info_message.replace(' ', '') == '':
+            message = self._info_message
+            self._info_message = None  # Reset the info message;
             return self._main_template.format(
-                content=styles.fore(self._info_template.format(message=self.app.info_message), 'blue'),
+                content=styles.fore(self._info_template.format(message=self._info_message), 'blue'),
                 hr=self.single_hr
             )
         else:

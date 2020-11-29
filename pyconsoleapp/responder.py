@@ -4,16 +4,13 @@ from typing import Callable, List, Dict, Any, Optional, TYPE_CHECKING
 from pyconsoleapp import exceptions
 
 if TYPE_CHECKING:
-    from pyconsoleapp import ConsoleApp
     from pyconsoleapp.responder_args import ResponderArg
 
 
 class Responder:
     """Associates a function with a list of arguments."""
 
-    def __init__(self, app: 'ConsoleApp', func: Callable[..., None], args: Optional[List['ResponderArg']] = None,
-                 **kwds):
-        self._app: 'ConsoleApp' = app
+    def __init__(self, func: Callable[..., None], args: Optional[List['ResponderArg']] = None, **kwds):
         self._responder_func: Callable[..., None] = func
         self._args: List['ResponderArg'] = args if args is not None else []
 
@@ -128,7 +125,6 @@ class Responder:
 
     def respond(self, response: Optional[str] = None) -> None:
         """Calls the function associated with the responder, passing any parsed arguments, if present."""
-        self._app.stop_responding()  # Stop by default, and the function can then restart before next loop.
         if self.is_argless:
             self._responder_func()
         else:

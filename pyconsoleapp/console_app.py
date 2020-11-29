@@ -1,7 +1,7 @@
 import os
-from typing import Dict, List, Optional, TYPE_CHECKING, Type, TypeVar
+from typing import Dict, List, Optional, TYPE_CHECKING, TypeVar
 
-from pyconsoleapp import exceptions, configs, component
+from pyconsoleapp import exceptions, configs
 
 if os.name == 'nt':
     from pyautogui import write  # noqa
@@ -36,13 +36,10 @@ class ConsoleApp:
         self._current_route: Optional[str] = None
         self._route_history: List[str] = []
         self._route_component_map: Dict[str, 'Component'] = {}
-        self._initialising: bool = False
         self._route_exit_guard_map: Dict[str, 'GuardComponent'] = {}
         self._route_entrance_guard_map: Dict[str, 'GuardComponent'] = {}
         self._finished_processing_response: bool = False
         self._quit: bool = False
-        self.error_message: Optional[str] = None
-        self.info_message: Optional[str] = None
 
     @property
     def name(self) -> str:
@@ -79,21 +76,12 @@ class ConsoleApp:
         while len(self._route_history) > configs.route_history_length:
             self._route_history.pop(0)
 
-    def get_component(self, component_class: Type[T], route: str, state: Optional[str] = None) -> T:
+    def get_component(self, route: str, state: Optional[str] = None) -> 'Component':
         """Gets the component associated with the specified route and state. If state is not
         specified, the component corresponding to the route's current state is returned.
-
-        Raises:
-            PartiallyInitialisedError: To indicate the application is still initialising components,
-                so we can't start retrieving them yet.
         """
-        if self._initialising is True:
-            raise exceptions.PartiallyInitialisedError
-        self._validate_route(route)  # Check the route is recognised;
-        # Grab the component registered the route;
-        comp = self._route_component_map[route].get_sibling(state)
-        assert isinstance(comp, component_class)
-        return comp
+        self._validate_route(route)
+        return self._route_component_map[route].get_sibling(state)
 
     def _get_active_component(self) -> 'Component':
         """Returns the component/guard corresponding with current application state."""
@@ -101,7 +89,7 @@ class ConsoleApp:
         active_guard = self._get_active_guard()
         if active_guard is not None:
             return active_guard
-        return self.get_component(component.Component, self.current_route)
+        return self.get_component(self.current_route)
 
     def _get_active_guard(self) -> Optional['GuardComponent']:
         """Returns the active guard if exists, otherwise returns None."""
@@ -126,17 +114,15 @@ class ConsoleApp:
         else:
             return None
 
-    def guard_entrance(self, route_to_stay_outside: str, guard_class: Type[T]) -> T:
-        """Instantiates the guard, assigns it to guard entrance of the specified route, and returns it."""
+    def guard_entrance(self, route_to_stay_outside: str, guard: 'GuardComponent') -> 'GuardComponent':
+        """Adds the guard to the entrance of the specified route, and returns the guard."""
         self._validate_route(route_to_stay_outside)
-        guard = guard_class(app=self)  # type: GuardComponent
         self._route_entrance_guard_map[route_to_stay_outside] = guard
         return guard
 
-    def guard_exit(self, route_to_stay_within: str, guard_class: Type[T]) -> T:
-        """Instantiates the guard, assigns it to guard exit of the specified route, and returns it."""
+    def guard_exit(self, route_to_stay_within: str, guard: 'GuardComponent') -> 'GuardComponent':
+        """Adds the guard to the exit of the specified route, and returns the guard."""
         self._validate_route(route_to_stay_within)
-        guard = guard_class(app=self)  # type: GuardComponent
         self._route_exit_guard_map[route_to_stay_within] = guard
         return guard
 
@@ -152,11 +138,11 @@ class ConsoleApp:
         if route in self._route_exit_guard_map.keys():
             del self._route_exit_guard_map[route]
 
-    def clear_guard(self, guard_instance: 'GuardComponent') -> None:
+    def clear_guard(self, guard: 'GuardComponent') -> None:
         """Removes the guard from the entrance/exit route-guard maps."""
-        self._route_exit_guard_map = {k: v for k, v in self._route_exit_guard_map.items() if not v == guard_instance}
+        self._route_exit_guard_map = {k: v for k, v in self._route_exit_guard_map.items() if not v == guard}
         self._route_entrance_guard_map = {k: v for k, v in self._route_entrance_guard_map.items() if
-                                          not v == guard_instance}
+                                          not v == guard}
 
     def _process_response(self, response: str) -> None:
         """Processes the response provided.
@@ -173,6 +159,7 @@ class ConsoleApp:
             if response.replace(' ', '') == '':
                 argless_responder = current_component.active_argless_responder
                 if argless_responder:
+                    self.stop_searching_responders()  # Stop by default, component can restart if rqd.
                     argless_responder.respond()
                     responder_was_found = True
                     if self._finished_processing_response:
@@ -184,6 +171,7 @@ class ConsoleApp:
                 if len(responders):
                     for responder in responders:
                         if responder.check_marker_match(response):
+                            self.stop_searching_responders()  # Stop by default, component can restart if rqd.
                             responder.respond(response)
                             responder_was_found = True
                             if self._finished_processing_response:
@@ -193,6 +181,7 @@ class ConsoleApp:
             # markerless responder;
             markerless_responder = current_component.active_markerless_arg_responder
             if markerless_responder:
+                self.stop_searching_responders()  # Stop by default, component can restart if rqd.
                 markerless_responder.respond(response)
                 responder_was_found = True
                 if self._finished_processing_response:
@@ -216,7 +205,7 @@ class ConsoleApp:
         """Instructs the application to continue searching for responders."""
         self._finished_processing_response = False
 
-    def stop_responding(self) -> None:
+    def stop_searching_responders(self) -> None:
         """Instructs the application to stop searching for responders."""
         self._finished_processing_response = True
 
@@ -225,9 +214,6 @@ class ConsoleApp:
         while not self._quit:
             # If response has been collected;
             if self._response is not None:
-                # Reset the error and info messages;
-                self.error_message = None
-                self.info_message = None
                 # Do the processing;
                 self._process_response(self._response)
                 self._clear_response()
@@ -259,24 +245,17 @@ class ConsoleApp:
         """Returns the current route to the previous route in the route history."""
         self.current_route = self._route_history.pop()
 
-    def configure(self, routes: Optional[Dict[str, Type['Component']]] = None,
-                  **kwds) -> None:  # noqa: Ignore unused kwds warning.
+    def configure(self, routes: Optional[Dict[str, 'Component']] = None, **kwds) -> None:  # noqa - Unused kwds.
         """Configures the application routes and swallows any remaining keywords."""
         if routes is not None:
-            self._initialising = True
-            for route, component_class in routes.items():
-                self._route_component_map[route] = component_class(app=self)
-            self._initialising = False
+            for route, comp in routes.items():
+                self._route_component_map[route] = comp
         # Check we don't have a superclass that also wants configuration;
         assert not hasattr(super(), 'configure')
 
     @staticmethod
     def clear_console():
         os.system('cls' if os.name == 'nt' else 'clear')
-
-    @property
-    def terminal_width(self) -> int:
-        return configs.terminal_width_chars
 
     def quit(self):
         self._quit = True

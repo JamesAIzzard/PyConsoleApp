@@ -1,12 +1,10 @@
 import abc
-from typing import List, Callable, Optional, Type, TypeVar, TYPE_CHECKING
+from typing import List, Callable, Optional, TypeVar, TYPE_CHECKING
 
-from pyconsoleapp import exceptions, statemap, responder
+from pyconsoleapp import configs, exceptions, statemap
 
 if TYPE_CHECKING:
     from pyconsoleapp.statemap import Statemap
-    from pyconsoleapp import ConsoleApp
-    from pyconsoleapp.responder_args import ResponderArg
     from pyconsoleapp.responder import Responder
 
 T = TypeVar('T')
@@ -15,8 +13,7 @@ T = TypeVar('T')
 class Component(abc.ABC):
     """Base class for all application components."""
 
-    def __init__(self, app: 'ConsoleApp', state_map: Optional['Statemap'] = None, **kwds):
-        self._app = app
+    def __init__(self, state_map: Optional['Statemap'] = None, **kwds):
         if state_map is None:
             state_map = statemap.Statemap({"main": self})
         self._statemap: 'Statemap' = state_map
@@ -24,11 +21,6 @@ class Component(abc.ABC):
         self._local_responders: List['Responder'] = []  # 'local' indicates on *this* instance, not children.
         self._get_view_prefill: Optional[Callable[..., str]] = None
         self.loaded_once: bool = False  # Indicates first-time load status.
-
-    @property
-    def app(self) -> 'ConsoleApp':
-        """Returns the component's app reference."""
-        return self._app
 
     @abc.abstractmethod
     def printer(self, **kwds) -> str:
@@ -38,12 +30,12 @@ class Component(abc.ABC):
     @property
     def single_hr(self) -> str:
         """Returns a unicode single horizontal rule, as long as the terminal width set in configs."""
-        return u'\u2500' * self.app.terminal_width
+        return u'\u2500' * configs.terminal_width_chars
 
     @property
     def double_hr(self) -> str:
         """Returns a unicode double horizonal rule, as long as the terminal width set in configs."""
-        return u'\u2501' * self.app.terminal_width
+        return u'\u2501' * configs.terminal_width_chars
 
     def on_load(self) -> None:
         """Method run immediately before the view is extracted from the component."""
@@ -117,10 +109,6 @@ class Component(abc.ABC):
         """Returns a list of responders local to this component."""
         return self._local_responders
 
-    def configure_responder(self, responder_func: Callable[..., None], args: Optional[List['ResponderArg']] = None):
-        """Returns the correct responder type, with it's app reference configured."""
-        return responder.Responder(app=self.app, func=responder_func, args=args)
-
     @property
     def active_responders(self) -> List['Responder']:
         """Returns a list of active responders for this component and its children."""
@@ -169,16 +157,15 @@ class Component(abc.ABC):
         else:
             return None
 
-    def delegate_state(self, state: str, component_class: Type[T]) -> T:
+    def delegate_state(self, state: str, component: 'Component') -> 'Component':
         """Instantiates the sibling component to run the specified state, adds it to the statemap
         and returns it."""
-        component = component_class(app=self.app, state_map=self._statemap)
+        component._statemap = self._statemap
         self._statemap[state] = component
         return component
 
-    def use_component(self, component_class: Type[T]) -> T:
+    def use_component(self, component: 'Component') -> 'Component':
         """Includes the child component in this component instance and returns the child instance."""
-        component = component_class(app=self.app)
         self._child_components.append(component)
         list(set(self._child_components))  # Use set() to prevent duplication.
         return component

@@ -5,11 +5,6 @@ class PyConsoleAppError(Exception):
     """Base exception for PyConsoleApp."""
 
 
-class PartiallyInitialisedError(PyConsoleAppError):
-    """Exception to indicate the requested operation cannot complete because the application is
-    partially initialised."""
-
-
 class NoCurrentRouteError(PyConsoleAppError):
     """Indicating no root route has been configured for the application."""
 

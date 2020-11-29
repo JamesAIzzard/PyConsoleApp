@@ -1,6 +1,9 @@
-from typing import Callable, Optional
+from typing import Callable, Optional, TYPE_CHECKING
 
-from pyconsoleapp import Component, PrimaryArg
+from pyconsoleapp import Component, Responder, PrimaryArg
+
+if TYPE_CHECKING:
+    from pyconsoleapp import ConsoleApp
 
 
 class NavOptionsComponent(Component):
@@ -8,16 +11,16 @@ class NavOptionsComponent(Component):
     _template = u'''Navigate Back   \u2502 -back, -b
 Quit            \u2502 -quit, -q'''
 
-    def __init__(self, **kwds):
+    def __init__(self, app: 'ConsoleApp', **kwds):
         super().__init__(**kwds)
-
+        self._app: 'ConsoleApp' = app
         self._on_back_: Optional[Callable[[], None]] = None
 
         self.configure(responders=[
-            self.configure_responder(self._on_back, args=[
+            Responder(self._on_back, args=[
                 PrimaryArg(name='back', accepts_value=False, markers=['-back', '-b'])
             ]),
-            self.configure_responder(self._on_quit, args=[
+            Responder(self._on_quit, args=[
                 PrimaryArg(name='quit', accepts_value=False, markers=['-quit', '-q'])
             ])
         ])
@@ -29,14 +32,14 @@ Quit            \u2502 -quit, -q'''
         if self._on_back_ is not None:
             self._on_back_()
         else:
-            route_list = self.app.current_route.split('.')
+            route_list = self._app.current_route.split('.')
             if len(route_list) > 1:
                 route_list.pop(-1)
                 back_route = '.'.join(route_list)
-                self.app.go_to(back_route)
+                self._app.go_to(back_route)
 
     def _on_quit(self) -> None:
-        self.app.quit()
+        self._app.quit()
 
     def configure(self, go_back: Optional[Callable[[], None]] = None, **kwds):
         """Configures the nav bar instance."""
