@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING
 
-from pyconsoleapp import Component, builtin_components
+from pyconsoleapp import Component
 
 if TYPE_CHECKING:
-    from pyconsoleapp import ConsoleApp
+    from pyconsoleapp.builtin_components import TitleBarComponent, NavOptionsComponent, MessageBarComponent
 
 
 class HeaderComponent(Component):
@@ -14,21 +14,13 @@ class HeaderComponent(Component):
 {single_hr}
 {message_bar}'''
 
-    def __init__(self, app: 'ConsoleApp', **kwds):
-        """
-        args:
-            app (ConsoleApp): Application reference, required to access app-level attributes like
-                navigation and title.
-        keywords:
-            go_back (Callable[[], None]): Function to call when user calls 'back'
-            error_message (str): Error message to show once on next render cycle.
-            info_message (str): Info message to show once on next render cycle.
-        """
+    def __init__(self, title_bar_component: 'TitleBarComponent',
+                 nav_options_component: 'NavOptionsComponent',
+                 message_bar_component: 'MessageBarComponent', **kwds):
         super().__init__(**kwds)
-        self._title_bar = self.use_component(builtin_components.TitleBarComponent(app, **kwds))
-        self._nav_options = self.use_component(builtin_components.NavOptionsComponent(app, **kwds))
-        self._message_bar = self.use_component(builtin_components.MessageBarComponent(**kwds))
-        self.configure(**kwds)
+        self._title_bar = self.use_component(title_bar_component)
+        self._nav_options = self.use_component(nav_options_component)
+        self._message_bar = self.use_component(message_bar_component)
 
     def printer(self, **kwds) -> str:
         return self._template.format(
@@ -39,13 +31,5 @@ class HeaderComponent(Component):
         )
 
     def configure(self, **kwds):
-        """Configures the header component instance.
-        keywords:
-            go_back (Callable[[], None]): Function to call when user calls 'back'
-            error_message (str): Error message to show once on next render cycle.
-            info_message (str): Info message to show once on next render cycle.
-        """
-        self._title_bar.configure(**kwds)
-        self._nav_options.configure(**kwds)
-        self._message_bar.configure(**kwds)
+        """Configures the header component instance."""
         super().configure(**kwds)

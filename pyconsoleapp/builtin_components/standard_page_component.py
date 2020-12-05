@@ -1,9 +1,9 @@
-from typing import Callable, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
-from pyconsoleapp import Component, styles, builtin_components
+from pyconsoleapp import Component, styles
 
 if TYPE_CHECKING:
-    from pyconsoleapp import ConsoleApp
+    from pyconsoleapp.builtin_components import HeaderComponent
 
 
 class StandardPageComponent(Component):
@@ -18,10 +18,10 @@ class StandardPageComponent(Component):
 {page_content}
 >>> '''
 
-    def __init__(self, app: 'ConsoleApp', **kwds):
+    def __init__(self, header_component: 'HeaderComponent', **kwds):
         super().__init__(**kwds)
         self._page_title: Optional[str] = None
-        self._header_component = self.use_component(builtin_components.HeaderComponent(app))
+        self._header_component = self.use_component(header_component)
 
     def printer(self, page_content: str, **kwds) -> str:
         """Returns the standard page component view as a string, with the page content inserted."""
@@ -37,11 +37,8 @@ class StandardPageComponent(Component):
                 header=self._header_component.printer(),
                 page_content=page_content)
 
-    def configure(self, page_title: Optional[str] = None,
-                  go_back: Optional[Callable[[], None]] = None, **kwds) -> None:
+    def configure(self, page_title: Optional[str] = None, **kwds) -> None:
         """Configures the StandardPageComponent instance."""
         if page_title is not None:
             self._page_title = page_title
-        if go_back is not None:
-            self._header_component.configure(go_back=go_back)
         super().configure(**kwds)

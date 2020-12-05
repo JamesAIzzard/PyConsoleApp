@@ -157,14 +157,14 @@ class Component(abc.ABC):
         else:
             return None
 
-    def delegate_state(self, state: str, component: 'Component') -> 'Component':
+    def delegate_state(self, state: str, component: T) -> T:
         """Instantiates the sibling component to run the specified state, adds it to the statemap
         and returns it."""
         component._statemap = self._statemap
         self._statemap[state] = component
         return component
 
-    def use_component(self, component: 'Component') -> 'Component':
+    def use_component(self, component: T) -> T:
         """Includes the child component in this component instance and returns the child instance."""
         self._child_components.append(component)
         list(set(self._child_components))  # Use set() to prevent duplication.

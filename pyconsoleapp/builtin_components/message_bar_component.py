@@ -30,14 +30,14 @@ class MessageBarComponent(Component):
             message = self._error_message  # Reset the error message;
             self._error_message = None
             return self._main_template.format(
-                content=styles.fore(self._error_template.format(message=self._error_message), 'red'),
+                content=styles.fore(self._error_template.format(message=message), 'red'),
                 hr=self.single_hr
             )
         elif self._info_message is not None and not self._info_message.replace(' ', '') == '':
             message = self._info_message
             self._info_message = None  # Reset the info message;
             return self._main_template.format(
-                content=styles.fore(self._info_template.format(message=self._info_message), 'blue'),
+                content=styles.fore(self._info_template.format(message=message), 'blue'),
                 hr=self.single_hr
             )
         else:

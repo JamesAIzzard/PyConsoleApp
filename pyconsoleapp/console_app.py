@@ -61,6 +61,10 @@ class ConsoleApp:
         else:
             raise KeyError('The route {} was not recognised.'.format(route))
 
+    def get_current_route(self) -> str:
+        """Getter function for the current application route."""
+        return self.current_route
+
     def _validate_route(self, route: str):
         """Raises an exception if the route is not in the set of known routes."""
         if route not in self._route_component_map:
