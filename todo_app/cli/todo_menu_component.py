@@ -1,11 +1,12 @@
-from typing import Dict, Optional, TYPE_CHECKING
+from typing import Dict, Callable, TYPE_CHECKING
 
-from pyconsoleapp import Component, PrimaryArg, OptionalArg, validators, utils, ResponseValidationError, styles
+from pyconsoleapp import Component, Responder, ResponderArg, validators, utils, ResponseValidationError, styles
 from pyconsoleapp.builtin_components import StandardPageComponent
-from todo_app import service, cli
+from todo_app import service, app
 
 if TYPE_CHECKING:
     from todo_app import Todo
+    from todo_app.cli import TodoEditorComponent
 
 
 class TodoMenuComponent(Component):
@@ -20,36 +21,37 @@ class TodoMenuComponent(Component):
 {single_hr}
 '''
 
-    def __init__(self, **kwds):
+    def __init__(self, dash_component: 'TodoDashComponent',
+                 editor_component: 'TodoEditorComponent',
+                 nav_to_editor: Callable[[], None],
+                 page_component: 'StandardPageComponent', **kwds):
         super().__init__(**kwds)
         self.configure(responders=[
-            self.configure_responder(self._on_add_todo, args=[
-                PrimaryArg(name='todo_text', accepts_value=True, markers=['-add', '-a']),
-                OptionalArg(name='today_flag', accepts_value=False, markers=['--today', '--t']),
-                OptionalArg(name='importance_score', accepts_value=True, markers=['--importance', '--i'],
-                            validators=[validators.validate_integer, service.validate_importance_score],
-                            default_value=1)
+            Responder(self._on_add_todo, args=[
+                ResponderArg(name='todo_text', accepts_value=True, markers=['-add', '-a']),
+                ResponderArg(name='today_flag', accepts_value=False, markers=['--today', '--t'], optional=True),
+                ResponderArg(name='importance_score', accepts_value=True, markers=['--importance', '--i'],
+                             validators=[validators.validate_integer, service.validate_importance_score],
+                             default_value=1, optional=True)
             ]),
-            self.configure_responder(self._on_remove_todo, args=[
-                PrimaryArg(name='todo_number', accepts_value=True, markers=['-remove', '-r'],
-                           validators=[self._validate_todo_num])
+            Responder(self._on_remove_todo, args=[
+                ResponderArg(name='todo_number', accepts_value=True, markers=['-remove', '-r'],
+                             validators=[self._validate_todo_num])
             ]),
-            self.configure_responder(self._on_edit_todo, args=[
-                PrimaryArg(name='todo_number', accepts_value=True, markers=['-edit', '-e'],
-                           validators=[self._validate_todo_num])
+            Responder(self._on_edit_todo, args=[
+                ResponderArg(name='todo_number', accepts_value=True, markers=['-edit', '-e'],
+                             validators=[self._validate_todo_num])
             ]),
-            self.configure_responder(self.get_state_changer('dash'), args=None)
+            Responder(self.get_state_changer('dash'), args=None)
         ])
 
         self._todo_num_map: Dict[int, 'Todo'] = {}
 
-        self._dash_component = self.delegate_state('dash', TodoDashComponent)
-        self._editor_component: Optional['cli.TodoEditorComponent'] = None
-        self._page_component = self.use_component(StandardPageComponent)
+        self._dash_component = self.delegate_state('dash', dash_component)
+        self._editor_component = editor_component
+        self._nav_to_editor = nav_to_editor
+        self._page_component = self.use_component(page_component)
         self._page_component.configure(page_title='Todo List')
-
-    def on_first_load(self) -> None:
-        self._editor_component = self.app.get_component(cli.TodoEditorComponent, 'todos.edit', 'main')
 
     def on_load(self) -> None:
         self._todo_num_map = utils.make_numbered_map(service.todos)
@@ -97,22 +99,12 @@ class TodoMenuComponent(Component):
     def _on_edit_todo(self, todo_number: int) -> None:
         """Handler function for when a todo_ is edited."""
         t = service.fetch_todo(todo_number)
-        self._editor_component.configure(todo=t)
-        exit_guard = self.app.guard_exit('todos.edit', cli.TodoSaveCheckComponent)
-        exit_guard.configure(todo_to_check=t)
-        self.app.go_to('todos.edit')
+
+        def return_from_edit():
+            app.go_to('todos')
+
+        self._editor_component.configure(todo=t, enable_save_check=True, nav_on_return=return_from_edit)
+        self._nav_to_editor()
 
 
-class TodoDashComponent(Component):
-    _template = u'''There are currently {todo_count} todo items.
-'''
 
-    def __init__(self, **kwds):
-        super().__init__(**kwds)
-        self.page_component = self.use_component(StandardPageComponent)
-        self.page_component.configure(page_title='Dashboard', go_back=self.get_state_changer("main"))
-
-    def printer(self, **kwds) -> str:
-        return self.page_component.printer(
-            page_content=self._template.format(todo_count=service.count_todos())
-        )

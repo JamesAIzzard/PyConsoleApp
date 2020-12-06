@@ -15,17 +15,21 @@ class TodoSaveCheckComponent(GuardComponent, builtin_components.YesNoDialogCompo
             **kwds
         )
         self._todo_to_check: Optional['Todo'] = None
+        super().configure(should_activate=lambda: not self._todo_to_check.saved)
 
     def printer(self, **kwds) -> str:
         return super().printer(**kwds)
 
     def _on_yes(self) -> None:
+        # Save and disable the guard.
         service.save_todo(self._todo_to_check)
-        self.stop_guarding()
+        self.configure(should_activate=lambda: False)
 
     def _on_no(self) -> None:
-        self.stop_guarding()
+        # Disable the guard.
+        self.configure(should_activate=lambda: False)
 
     def configure(self, todo_to_check: Optional['Todo'] = None, **kwds) -> None:
-        self._todo_to_check = todo_to_check
-        super().configure(should_activate=lambda: not todo_to_check.saved, **kwds)
+        if todo_to_check is not None:
+            self._todo_to_check = todo_to_check
+        super().configure(**kwds)

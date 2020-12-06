@@ -14,8 +14,8 @@ header_component = builtin_components.HeaderComponent(title_bar_component=title_
                                                       nav_options_component=nav_options_component,
                                                       message_bar_component=message_bar_component)
 page_component = builtin_components.StandardPageComponent(header_component=header_component)
-todo_menu_component = cli.TodoMenuComponent()
 todo_editor_component = cli.TodoEditorComponent()
+todo_menu_component = cli.TodoMenuComponent()
 
 # Bind the components to their routes;
 app.configure(routes={

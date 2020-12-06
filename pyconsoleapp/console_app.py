@@ -113,7 +113,7 @@ class ConsoleApp:
                 # component;
                 guard = self._route_entrance_guard_map[guarded_route]
         # Return the guard if it is populated & activated.
-        if guard is not None and guard.activated:
+        if guard is not None and guard.activated and guard.enabled:
             return guard
         else:
             return None
