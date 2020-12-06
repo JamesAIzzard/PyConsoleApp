@@ -1,16 +1,16 @@
-import abc
 from typing import List, Callable, Optional, Any
 
 from pyconsoleapp import exceptions
 
 
-class ResponderArg(abc.ABC):
+class ResponderArg:
     """Base class for an argument, representing its markers, validation and default value."""
 
     def __init__(self, name: str, accepts_value: bool,
                  markers: Optional[List[str]] = None,
                  validators: Optional[List[Callable[..., Any]]] = None,
                  default_value: Any = None,
+                 optional: bool = False,
                  **kwds):
 
         if accepts_value is False:
@@ -23,6 +23,7 @@ class ResponderArg(abc.ABC):
         self.marker_found: bool = False
         self._validators: List[Callable[..., Any]] = validators if validators is not None else []
         self._default_value: Optional[Any] = default_value
+        self._optional = optional
         self._value: Any = None
         self._value_buffer = []
 
@@ -46,7 +47,7 @@ class ResponderArg(abc.ABC):
     @property
     def is_primary(self) -> bool:
         """Returns True/False to indicate if the argument is primary."""
-        return isinstance(self, PrimaryArg)
+        return not self._optional
 
     @property
     def value(self) -> Any:
@@ -120,17 +121,3 @@ class ResponderArg(abc.ABC):
         """Resets the arg value."""
         self.marker_found = False
         self._init_value()
-
-
-class PrimaryArg(ResponderArg):
-    """Represents a mandatory Responder argument."""
-
-    def __init__(self, **kwds):
-        super().__init__(**kwds)
-
-
-class OptionalArg(ResponderArg):
-    """Represents an optional Responder argument."""
-
-    def __init__(self, **kwds):
-        super().__init__(**kwds)

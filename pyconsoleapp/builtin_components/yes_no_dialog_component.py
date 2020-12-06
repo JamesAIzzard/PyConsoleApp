@@ -1,6 +1,7 @@
 import abc
+from typing import Callable
 
-from pyconsoleapp import Component, PrimaryArg
+from pyconsoleapp import Component, Responder, ResponderArg
 
 
 class YesNoDialogComponent(Component, abc.ABC):
@@ -11,23 +12,24 @@ No  \u2502 -n, -no
 {hr}
 '''
 
-    def __init__(self, message: str, **kwds):
+    def __init__(self, message: str, on_yes: Callable[[], None], on_no: Callable[[], None], **kwds):
         super().__init__(**kwds)
-        self._message: str = message
-        self.configure(responders=[
-            self.configure_responder(self._on_yes, args=[
-                PrimaryArg(name='yes', accepts_value=False, markers=['-y', '-yes'])]),
-            self.configure_responder(self._on_no, args=[
-                PrimaryArg(name='no', accepts_value=False, markers=['-n', '-no'])])
-        ])
+        self.message: str = message
+        self._on_yes_ = on_yes
+        self._on_no_ = on_no
 
-    @property
-    def message(self) -> str:
-        return self._message
+        self.configure(responders=[
+            Responder(self._on_yes_, args=[
+                ResponderArg(name='yes', accepts_value=False, markers=['-yes', '-y'])
+            ]),
+            Responder(self._on_no_, args=[
+                ResponderArg(name='no', accepts_value=False, markers=['-no', '-n'])
+            ])
+        ])
 
     def printer(self, **kwds) -> str:
         return self._template.format(
-            hr="\u2501" * self.app.terminal_width,
+            hr=self.single_hr,
             message=self.message
         )
 
