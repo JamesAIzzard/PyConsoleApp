@@ -19,7 +19,6 @@ class NavOptionsComponent(Component):
         self._on_back_ = on_back
         self._on_quit_ = on_quit
         self._get_current_route = get_current_route
-        self._custom_back: Optional[Callable[[], None]] = None
 
         self.configure(responders=[
             Responder(self._on_back, args=[
@@ -31,26 +30,22 @@ class NavOptionsComponent(Component):
         ])
 
     def printer(self, **kwds) -> str:
-        return self._template.format(
+        return self.__class__._template.format(
             current_route=styles.fore(self._get_current_route().replace('.', '>'), 'blue')
         )
 
     def _on_back(self) -> None:
         """Calls and resets custom back (if set) otherwise calls standard back function."""
-        if self._custom_back is not None:
-            self._custom_back()
-            self._custom_back = None
-        else:
-            self._on_back_()
+        self._on_back_()
 
     def _on_quit(self) -> None:
         """Calls quit function."""
         self._on_quit_()
 
-    def configure(self, custom_go_back: Optional[Callable[[], None]] = None, **kwds):
+    def configure(self, on_back: Optional[Callable[[], None]] = None, **kwds):
         """Configures the nav bar instance."""
 
-        if custom_go_back is not None:
-            self._custom_back = custom_go_back
+        if on_back is not None:
+            self._on_back_ = on_back
 
         super().configure(**kwds)

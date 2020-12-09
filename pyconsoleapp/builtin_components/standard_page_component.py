@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, Callable, TYPE_CHECKING
 
 from pyconsoleapp import Component, styles
 
@@ -41,4 +41,5 @@ class StandardPageComponent(Component):
         """Configures the StandardPageComponent instance."""
         if page_title is not None:
             self._page_title = page_title
+        self._header_component.configure(**kwds)
         super().configure(**kwds)

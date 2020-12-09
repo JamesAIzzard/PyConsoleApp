@@ -1,12 +1,12 @@
 from typing import Dict, Callable, TYPE_CHECKING
 
-from pyconsoleapp import Component, Responder, ResponderArg, validators, utils, ResponseValidationError, styles
+from pyconsoleapp import Component, Responder, ResponderArg, validators, utils, ResponseValidationError, styles, builtin_components
 from pyconsoleapp.builtin_components import StandardPageComponent
 from todo_app import service, app
 
 if TYPE_CHECKING:
     from todo_app import Todo
-    from todo_app.cli import TodoEditorComponent
+    from todo_app.cli import TodoEditorComponent, TodoDashComponent
 
 
 class TodoMenuComponent(Component):
@@ -42,12 +42,14 @@ class TodoMenuComponent(Component):
                 ResponderArg(name='todo_number', accepts_value=True, markers=['-edit', '-e'],
                              validators=[self._validate_todo_num])
             ]),
-            Responder(self.get_state_changer('dash'), args=None)
+            Responder(self._on_show_dash, args=None)
         ])
 
         self._todo_num_map: Dict[int, 'Todo'] = {}
 
         self._dash_component = self.delegate_state('dash', dash_component)
+        self._dash_component.configure(on_back=self.get_state_changer('main'))
+
         self._editor_component = editor_component
         self._nav_to_editor = nav_to_editor
         self._page_component = self.use_component(page_component)
@@ -106,5 +108,8 @@ class TodoMenuComponent(Component):
         self._editor_component.configure(todo=t, enable_save_check=True, nav_on_return=return_from_edit)
         self._nav_to_editor()
 
-
-
+    def _on_show_dash(self) -> None:
+        """Switches to dash view state."""
+        self.current_state = 'dash'
+        # Reconfigure the back button to change the state back to main.
+        self._page_component.configure(custom_back=self.get_state_changer('main'))
