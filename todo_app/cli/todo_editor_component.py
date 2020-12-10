@@ -20,9 +20,7 @@ class TodoEditorComponent(Component):
 Update the todo and press enter:
 '''
 
-    def __init__(self, standard_page_component: 'StandardPageComponent',
-                 save_check_component: 'TodoSaveCheckComponent',
-                 nav_on_return: Callable[[], None] = None, **kwds):
+    def __init__(self, nav_on_return: Callable[[], None], **kwds):
         super().__init__(**kwds)
 
         self.configure(responders=[
@@ -39,8 +37,8 @@ Update the todo and press enter:
 
         self._todo: Optional['Todo'] = None
         self._nav_on_return = nav_on_return
-        self._save_check_component = save_check_component
-        self._page_component = self.use_component(standard_page_component)
+        self._save_check_component = cli.TodoSaveCheckComponent(**kwds)
+        self._page_component = self.use_component(StandardPageComponent(**kwds))
         self._page_component.configure(page_title='Todo Editor')
 
     def printer(self, **kwds) -> str:

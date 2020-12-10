@@ -25,6 +25,19 @@ class MessageBarComponent(Component):
         """Sets the component's info message."""
         self._info_message = message
 
+    def clear_error_message(self) -> None:
+        """Clears the error message."""
+        self._error_message = None
+
+    def clear_info_message(self) -> None:
+        """Clears the info message."""
+        self._info_message = None
+
+    def clear_messages(self) -> None:
+        """Clears all messages."""
+        self.clear_error_message()
+        self.clear_info_message()
+
     def printer(self, **kwds) -> str:
         if self._error_message is not None:
             message = self._error_message  # Reset the error message;

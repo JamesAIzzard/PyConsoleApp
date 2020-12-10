@@ -1,5 +1,5 @@
 import os
-from typing import Dict, List, Optional, TYPE_CHECKING, TypeVar
+from typing import Dict, List, Optional, Callable, TYPE_CHECKING, TypeVar
 
 from pyconsoleapp import exceptions, configs
 
@@ -64,6 +64,16 @@ class ConsoleApp:
     def get_current_route(self) -> str:
         """Getter function for the current application route."""
         return self.current_route
+
+    def get_route_changer(self, route: str) -> Callable[[], None]:
+        """Creates and returns a route changer function."""
+
+        self._validate_route(route)
+
+        def changer():
+            self.go_to(route)
+
+        return changer
 
     def _validate_route(self, route: str):
         """Raises an exception if the route is not in the set of known routes."""

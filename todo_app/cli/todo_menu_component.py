@@ -1,8 +1,8 @@
-from typing import Dict, Callable, TYPE_CHECKING
+from typing import Dict, TYPE_CHECKING
 
-from pyconsoleapp import Component, Responder, ResponderArg, validators, utils, ResponseValidationError, styles, builtin_components
-from pyconsoleapp.builtin_components import StandardPageComponent
-from todo_app import service, app
+from pyconsoleapp import Component, Responder, ResponderArg, validators, utils, ResponseValidationError, styles, \
+    builtin_components
+from todo_app import service, cli, header_component
 
 if TYPE_CHECKING:
     from todo_app import Todo
@@ -21,11 +21,19 @@ class TodoMenuComponent(Component):
 {single_hr}
 '''
 
-    def __init__(self, dash_component: 'TodoDashComponent',
-                 editor_component: 'TodoEditorComponent',
-                 nav_to_editor: Callable[[], None],
-                 page_component: 'StandardPageComponent', **kwds):
+    def __init__(self, todo_editor_component: 'TodoEditorComponent', editor_route: str, **kwds):
         super().__init__(**kwds)
+
+        self._todo_num_map: Dict[int, 'Todo'] = {}
+
+        self._dash_component = self.delegate_state('dash', cli.TodoDashComponent(**kwds))
+        self._editor_component = todo_editor_component
+        self._editor_route = editor_route
+        self._page_component = self.use_component(builtin_components.StandardPageComponent(
+            header_component=kwds['header_component']
+        ))
+        self._page_component.configure(page_title='Todo List')
+
         self.configure(responders=[
             Responder(self._on_add_todo, args=[
                 ResponderArg(name='todo_text', accepts_value=True, markers=['-add', '-a']),
@@ -44,16 +52,6 @@ class TodoMenuComponent(Component):
             ]),
             Responder(self._on_show_dash, args=None)
         ])
-
-        self._todo_num_map: Dict[int, 'Todo'] = {}
-
-        self._dash_component = self.delegate_state('dash', dash_component)
-        self._dash_component.configure(on_back=self.get_state_changer('main'))
-
-        self._editor_component = editor_component
-        self._nav_to_editor = nav_to_editor
-        self._page_component = self.use_component(page_component)
-        self._page_component.configure(page_title='Todo List')
 
     def on_load(self) -> None:
         self._todo_num_map = utils.make_numbered_map(service.todos)
