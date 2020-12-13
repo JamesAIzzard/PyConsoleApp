@@ -68,8 +68,6 @@ class ConsoleApp:
     def get_route_changer(self, route: str) -> Callable[[], None]:
         """Creates and returns a route changer function."""
 
-        self._validate_route(route)
-
         def changer():
             self.go_to(route)
 

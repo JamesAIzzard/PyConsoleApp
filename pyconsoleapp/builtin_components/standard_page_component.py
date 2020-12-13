@@ -1,4 +1,4 @@
-from typing import Optional, Callable, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 
 from pyconsoleapp import Component, styles
 
@@ -18,9 +18,9 @@ class StandardPageComponent(Component):
 {page_content}
 >>> '''
 
-    def __init__(self, header_component: 'HeaderComponent', **kwds):
+    def __init__(self, header_component: 'HeaderComponent', page_title: Optional[str] = None, **kwds):
         super().__init__(**kwds)
-        self._page_title: Optional[str] = None
+        self._page_title = page_title
         self._header_component = self.use_component(header_component)
 
     def printer(self, page_content: str, **kwds) -> str:
@@ -38,7 +38,7 @@ class StandardPageComponent(Component):
                 page_content=page_content)
 
     def configure(self, page_title: Optional[str] = None, **kwds) -> None:
-        """Configures the StandardPageComponent instance."""
+        """Runs configuration."""
         if page_title is not None:
             self._page_title = page_title
         self._header_component.configure(**kwds)

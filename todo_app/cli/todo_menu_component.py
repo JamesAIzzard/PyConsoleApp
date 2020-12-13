@@ -2,9 +2,10 @@ from typing import Dict, TYPE_CHECKING
 
 from pyconsoleapp import Component, Responder, ResponderArg, validators, utils, ResponseValidationError, styles, \
     builtin_components
-from todo_app import service, cli, header_component
+from todo_app import cli, service
 
 if TYPE_CHECKING:
+    from pyconsoleapp.builtin_components import HeaderComponent
     from todo_app import Todo
     from todo_app.cli import TodoEditorComponent, TodoDashComponent
 
@@ -12,27 +13,40 @@ if TYPE_CHECKING:
 class TodoMenuComponent(Component):
     _template = u'''{todos}
 {single_hr}
--add, -a         [todo_item]  \u2502 -> Add a todo_item.
+-add, -a         [todo_item]  \u2502 -> Add a todo.
     --today                   \u2502 -> Flags as important.
     --importance [level: 1-3] \u2502 -> Describes the importance of a todo.
--remove, -r      [number]     \u2502 -> Remove a todo_item.
--edit, -e        [number]     \u2502 -> Edit a todo_item.
-(enter)                       \u2502 -> View todo_item dashboard.
+-remove, -r      [number]     \u2502 -> Remove a todo.
+-edit, -e        [number]     \u2502 -> Edit a todo.
+(enter)                       \u2502 -> View the dashboard.
 {single_hr}
 '''
 
-    def __init__(self, todo_editor_component: 'TodoEditorComponent', editor_route: str, **kwds):
+    def __init__(self, header_component: 'HeaderComponent',
+                 todo_editor_component: 'TodoEditorComponent',
+                 editor_route: str, **kwds):
         super().__init__(**kwds)
 
         self._todo_num_map: Dict[int, 'Todo'] = {}
-
-        self._dash_component = self.delegate_state('dash', cli.TodoDashComponent(**kwds))
-        self._editor_component = todo_editor_component
+        self.dash_nav_component = \
+            builtin_components.NavOptionsComponent(
+                on_back=self.get_state_changer('main'),
+                on_quit=header_component.nav_options_component._on_quit_, # noqa
+                get_current_route=header_component.nav_options_component._get_current_route # noqa
+            )
+        self.dash_nav_component.configure(on_back=self.get_state_changer('main'))
+        self.dash_header = \
+            builtin_components.HeaderComponent(title_bar_component=header_component.title_bar_component,
+                                               nav_options_component=self.dash_nav_component,
+                                               message_bar_component=header_component.message_bar_component)
+        self.dash_header.configure(on_back=self.get_state_changer('main'))
+        self.dash_component = self.delegate_state('dash', cli.TodoDashComponent(header_component=self.dash_header))
+        self.editor_component = todo_editor_component
         self._editor_route = editor_route
-        self._page_component = self.use_component(builtin_components.StandardPageComponent(
-            header_component=kwds['header_component']
-        ))
-        self._page_component.configure(page_title='Todo List')
+        self.page_component = self.use_component(
+            builtin_components.StandardPageComponent(header_component=header_component,
+                                                     page_title='Todo List')
+        )
 
         self.configure(responders=[
             Responder(self._on_add_todo, args=[
@@ -57,7 +71,7 @@ class TodoMenuComponent(Component):
         self._todo_num_map = utils.make_numbered_map(service.todos)
 
     def printer(self):
-        return self._page_component.printer(page_content=self._template.format(
+        return self.page_component.printer(page_content=self._template.format(
             todos=self._todo_list_view,
             single_hr=self.single_hr))
 
@@ -99,15 +113,8 @@ class TodoMenuComponent(Component):
     def _on_edit_todo(self, todo_number: int) -> None:
         """Handler function for when a todo_ is edited."""
         t = service.fetch_todo(todo_number)
-
-        def return_from_edit():
-            app.go_to('todos')
-
-        self._editor_component.configure(todo=t, enable_save_check=True, nav_on_return=return_from_edit)
-        self._nav_to_editor()
+        self.editor_component.configure(todo=t)
 
     def _on_show_dash(self) -> None:
         """Switches to dash view state."""
         self.current_state = 'dash'
-        # Reconfigure the back button to change the state back to main.
-        self._page_component.configure(custom_back=self.get_state_changer('main'))

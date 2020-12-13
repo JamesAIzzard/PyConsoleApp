@@ -3,4 +3,9 @@ class Todo:
         self.text: str = text
         self.today: bool = today
         self.importance: int = importance
-        self.saved: bool = False
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, self.__class__):
+            return self.__dict__ == other.__dict__
+        else:
+            return False

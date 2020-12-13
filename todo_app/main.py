@@ -6,8 +6,8 @@ from todo_app import cli
 app = ConsoleApp('Example Todo App')
 
 # Instantiate shared components;
-title_bar_component = builtin_components.TitleBarComponent(title=app.name, tagline='Dietary Optimisiation Software')
-message_bar_component = builtin_components.MessageBarComponent(),
+title_bar_component = builtin_components.TitleBarComponent(title=app.name, tagline='A PyConsoleApp Demo.')
+message_bar_component = builtin_components.MessageBarComponent()
 nav_options_component = builtin_components.NavOptionsComponent(
     on_back=app.go_back,
     on_quit=app.quit,
@@ -18,11 +18,13 @@ header_component = builtin_components.HeaderComponent(
     message_bar_component=message_bar_component,
     nav_options_component=nav_options_component
 )
-todo_editor_component = cli.TodoEditorComponent(nav_on_return=app.get_route_changer('todos'))
+todo_editor_component = cli.TodoEditorComponent(header_component=header_component,
+                                                nav_on_return=app.get_route_changer('todos'))
 
 # Configure the app routes;
 app.configure(routes={
     'todos': cli.TodoMenuComponent(
+        header_component=header_component,
         todo_editor_component=todo_editor_component,
         editor_route='todos.edit'
     ),

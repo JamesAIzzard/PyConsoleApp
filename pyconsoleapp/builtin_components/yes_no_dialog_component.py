@@ -1,5 +1,4 @@
 import abc
-from typing import Callable
 
 from pyconsoleapp import Component, Responder, ResponderArg
 
@@ -12,17 +11,15 @@ No  \u2502 -n, -no
 {hr}
 '''
 
-    def __init__(self, message: str, on_yes: Callable[[], None], on_no: Callable[[], None], **kwds):
+    def __init__(self, message: str, **kwds):
         super().__init__(**kwds)
         self.message: str = message
-        self._on_yes_ = on_yes
-        self._on_no_ = on_no
 
         self.configure(responders=[
-            Responder(self._on_yes_, args=[
+            Responder(self._on_yes, args=[
                 ResponderArg(name='yes', accepts_value=False, markers=['-yes', '-y'])
             ]),
-            Responder(self._on_no_, args=[
+            Responder(self._on_no, args=[
                 ResponderArg(name='no', accepts_value=False, markers=['-no', '-n'])
             ])
         ])

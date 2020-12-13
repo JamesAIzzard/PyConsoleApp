@@ -6,9 +6,11 @@ from todo_app.todo import Todo
 todos: List['Todo'] = []
 
 
-def save_todo(todo: 'Todo') -> None:
-    """Stubs in save functionality of a database."""
-    todo.saved = True
+def save_todo(old_version: ['Todo'], updated_version: 'Todo') -> None:
+    """Updates the _todo."""
+    for i, t in enumerate(todos):
+        if old_version is t:
+            todos[i] = updated_version
 
 
 def validate_todo_num(num) -> int:
