@@ -173,7 +173,7 @@ class Component(abc.ABC):
     def configure(self, responders: Optional[List['Responder']] = None,
                   get_prefill: Optional[Callable[[], str]] = None,
                   **kwds) -> None:
-        """Implements post-initialistion configuration of the component."""
+        """Configures the component."""
         if responders is not None:
             for r in responders:
                 if r not in self._local_responders:

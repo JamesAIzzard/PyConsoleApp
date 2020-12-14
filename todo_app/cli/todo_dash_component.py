@@ -21,4 +21,5 @@ class TodoDashComponent(Component):
             page_content=self._template.format(todo_count=todo_app.service.count_todos()))
 
     def configure(self, **kwds) -> None:
+        super().configure(**kwds)
         self.page_component.configure(**kwds)

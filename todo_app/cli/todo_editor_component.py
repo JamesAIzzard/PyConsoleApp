@@ -1,5 +1,5 @@
 import copy
-from typing import Optional, Callable, TYPE_CHECKING
+from typing import List, Optional, Callable, TYPE_CHECKING
 
 from pyconsoleapp import Component, Responder, ResponderArg
 from pyconsoleapp.builtin_components import StandardPageComponent
@@ -21,6 +21,17 @@ class TodoEditorComponent(Component):
 
 Update the todo and press enter:
 '''
+
+    _responders: List['Responder'] = [
+        Responder(_on_enter, args=[
+            ResponderArg(name='todo_text', accepts_value=True, markers=None),
+            ResponderArg(name='today', accepts_value=False, markers=['--today'], optional=True),
+            ResponderArg(name='importance_score', accepts_value=True, markers=['--importance'],
+                         validators=[cli.service.validate_importance_score], default_value=1,
+                         optional=True),
+            ResponderArg(name='save', accepts_value=False, markers=['--save'], optional=True)
+        ]),
+    ]
 
     def __init__(self, nav_on_return: Callable[[], None], header_component: 'HeaderComponent', **kwds):
         super().__init__(**kwds)
@@ -74,11 +85,12 @@ Update the todo and press enter:
         if self._todo_has_changed:
             service.save_todo(self._original_todo, self._updated_todo)
 
-    def configure(self, todo: Optional['Todo'] = None, **kwds) -> None:
+    def configure(self, todo: Optional['Todo'] = None,
+                  responders: Optional[List['Responder']] = None, **kwds) -> None:
         """Configures."""
         if todo is not None:
             self._original_todo = todo
             self._updated_todo = copy.deepcopy(todo)
-        super().configure(**kwds)
+        super().configure(responders, **kwds)
         self._page_component.configure(**kwds)
         self._save_check_component.configure(**kwds)
