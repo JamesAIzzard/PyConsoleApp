@@ -13,19 +13,23 @@ T = TypeVar('T')
 class Component(abc.ABC):
     """Base class for all application components."""
 
+    responders: List['Responder'] = []  # Local responders, but abbreviated for regular use.
+    states: List[str] = ['main']
+
     def __init__(self, state_map: Optional['Statemap'] = None, **kwds):
         if state_map is None:
             state_map = statemap.Statemap({"main": self})
         self._statemap: 'Statemap' = state_map
         self._child_components: List['Component'] = []
-        self._local_responders: List['Responder'] = []  # 'local' indicates on *this* instance, not children.
-        self._get_view_prefill: Optional[Callable[..., str]] = None
         self.loaded_once: bool = False  # Indicates first-time load status.
 
     @abc.abstractmethod
     def printer(self, **kwds) -> str:
         """Abstract method responsible for rendering the component view into text."""
         raise NotImplementedError
+
+    def get_view_prefill(self) -> Optional[str]:
+        """Returns any screen prefill for the view."""
 
     @property
     def single_hr(self) -> str:
@@ -41,14 +45,14 @@ class Component(abc.ABC):
         """Method run immediately before the view is extracted from the component."""
 
     def on_first_load(self) -> None:
-        """Method run the first time the component is used."""
+        """Method run the first time the instance is used."""
 
     def _validate(self) -> None:
         """Checks the component is valid. Raises an exception if not."""
         # Check there are not multiple local ArglessResponders or markerless args;
         argless_found = False
         markerless_found = False
-        for local_responder in self._local_responders:
+        for local_responder in self.responders:
             if local_responder.is_argless:
                 if argless_found is False:
                     argless_found = True
@@ -59,11 +63,6 @@ class Component(abc.ABC):
                     markerless_found = True
                 elif markerless_found is True:
                     raise exceptions.DuplicateMarkerlessArgError
-
-    @property
-    def states(self) -> List[str]:
-        """Returns a list of all states associated with this component and its siblings."""
-        return list(self._statemap.keys())
 
     @property
     def current_state(self) -> str:
@@ -77,6 +76,8 @@ class Component(abc.ABC):
 
     def get_state_changer(self, new_state: str) -> Callable[[], None]:
         """Returns a function, which, when called, changes the siblings' state to the state specified."""
+
+        self._statemap.validate_state(new_state)
 
         def changer():
             self._statemap.current_state = new_state
@@ -105,16 +106,11 @@ class Component(abc.ABC):
             raise exceptions.StateNotFoundError
 
     @property
-    def local_responders(self) -> List['Responder']:
-        """Returns a list of responders local to this component."""
-        return self._local_responders
-
-    @property
     def active_responders(self) -> List['Responder']:
         """Returns a list of active responders for this component and its children."""
         active_responders = []
         for active_component in self.active_components:
-            active_responders.extend(active_component.local_responders)
+            active_responders.extend(active_component.responders)
         return active_responders
 
     @property
@@ -150,13 +146,6 @@ class Component(abc.ABC):
                 mars.append(active_responder)
         return mars
 
-    def get_view_prefill(self) -> Optional[str]:
-        """Returns the prefill for the component."""
-        if self._get_view_prefill is not None:
-            return self._get_view_prefill()
-        else:
-            return None
-
     def delegate_state(self, state: str, component: T) -> T:
         """Instantiates the sibling component to run the specified state, adds it to the statemap
         and returns it."""
@@ -170,18 +159,7 @@ class Component(abc.ABC):
         list(set(self._child_components))  # Use set() to prevent duplication.
         return component
 
-    def configure(self, responders: Optional[List['Responder']] = None,
-                  get_prefill: Optional[Callable[[], str]] = None,
-                  **kwds) -> None:
+    def configure(self, **kwds) -> None:
         """Configures the component."""
-        if responders is not None:
-            for r in responders:
-                if r not in self._local_responders:
-                    self._local_responders.append(r)
-
-        if get_prefill is not None:
-            self._get_view_prefill = get_prefill
-
-        self._validate()
         # Swallow any remaining **kwds and check this really is the base class.
         assert not hasattr(super(), 'configure')

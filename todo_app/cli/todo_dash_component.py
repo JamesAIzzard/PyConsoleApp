@@ -15,6 +15,7 @@ class TodoDashComponent(Component):
         super().__init__(**kwds)
         self.page_component = self.use_component(
             builtin_components.StandardPageComponent(header_component=header_component, page_title='Dashboard'))
+        self._validate()
 
     def printer(self, **kwds) -> str:
         return self.page_component.printer(

@@ -22,43 +22,22 @@ class TodoEditorComponent(Component):
 Update the todo and press enter:
 '''
 
-    _responders: List['Responder'] = [
-        Responder(_on_enter, args=[
-            ResponderArg(name='todo_text', accepts_value=True, markers=None),
-            ResponderArg(name='today', accepts_value=False, markers=['--today'], optional=True),
-            ResponderArg(name='importance_score', accepts_value=True, markers=['--importance'],
-                         validators=[cli.service.validate_importance_score], default_value=1,
-                         optional=True),
-            ResponderArg(name='save', accepts_value=False, markers=['--save'], optional=True)
-        ]),
-    ]
-
     def __init__(self, nav_on_return: Callable[[], None], header_component: 'HeaderComponent', **kwds):
         super().__init__(**kwds)
-
         self._original_todo: Optional['Todo'] = None
         self._updated_todo: Optional['Todo'] = None
         self._nav_on_return = nav_on_return
         self._save_check_component = cli.TodoSaveCheckComponent(todo_has_changed=self._todo_has_changed,
                                                                 save=self._save_changes)
         self._page_component = self.use_component(StandardPageComponent(header_component=header_component))
-
-        self.configure(responders=[
-            Responder(self._on_enter, args=[
-                ResponderArg(name='todo_text', accepts_value=True, markers=None),
-                ResponderArg(name='today', accepts_value=False, markers=['--today'], optional=True),
-                ResponderArg(name='importance_score', accepts_value=True, markers=['--importance'],
-                             validators=[cli.service.validate_importance_score], default_value=1,
-                             optional=True),
-                ResponderArg(name='save', accepts_value=False, markers=['--save'], optional=True)
-            ]),
-        ])
-
         self._page_component.configure(page_title='Todo Editor')
-        self.configure(get_prefill=self._get_todo_text)
+        self._validate()
 
     def printer(self, **kwds) -> str:
         return self._page_component.printer(page_content=self._template)
+
+    def get_view_prefill(self) -> Optional[str]:
+        return self._get_todo_text()
 
     def _get_todo_text(self) -> str:
         """Returns the text from the current todo_."""
@@ -85,12 +64,21 @@ Update the todo and press enter:
         if self._todo_has_changed:
             service.save_todo(self._original_todo, self._updated_todo)
 
-    def configure(self, todo: Optional['Todo'] = None,
-                  responders: Optional[List['Responder']] = None, **kwds) -> None:
+    responders: List['Responder'] = [
+        Responder(_on_enter, args=[
+            ResponderArg(name='todo_text', accepts_value=True, markers=None),
+            ResponderArg(name='today', accepts_value=False, markers=['--today'], optional=True),
+            ResponderArg(name='importance_score', accepts_value=True, markers=['--importance'],
+                         validators=[service.validate_importance_score], default_value=1,
+                         optional=True),
+            ResponderArg(name='save', accepts_value=False, markers=['--save'], optional=True)
+        ]),
+    ]
+
+    def configure(self, todo: Optional['Todo'] = None, **kwds) -> None:
         """Configures."""
         if todo is not None:
             self._original_todo = todo
             self._updated_todo = copy.deepcopy(todo)
-        super().configure(responders, **kwds)
         self._page_component.configure(**kwds)
         self._save_check_component.configure(**kwds)

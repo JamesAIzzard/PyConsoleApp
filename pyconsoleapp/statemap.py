@@ -8,6 +8,7 @@ if TYPE_CHECKING:
 
 
 class Statemap(MutableMapping):
+    """Models the map between a component's state and its sibling components."""
     def __init__(self, state_map: Dict[str, 'Component']):
         self._current_state: str = "main"
         self._state_component_map = state_map

@@ -1,7 +1,9 @@
+from copy import copy
 from typing import Dict, TYPE_CHECKING
 
 from pyconsoleapp import Component, Responder, ResponderArg, validators, utils, ResponseValidationError, styles, \
     builtin_components
+import todo_app
 from todo_app import cli, service
 
 if TYPE_CHECKING:
@@ -26,46 +28,22 @@ class TodoMenuComponent(Component):
                  todo_editor_component: 'TodoEditorComponent',
                  editor_route: str, **kwds):
         super().__init__(**kwds)
-
         self._todo_num_map: Dict[int, 'Todo'] = {}
-        self.dash_nav_component = \
-            builtin_components.NavOptionsComponent(
-                on_back=self.get_state_changer('main'),
-                on_quit=header_component.nav_options_component._on_quit_, # noqa
-                get_current_route=header_component.nav_options_component._get_current_route # noqa
-            )
-        self.dash_nav_component.configure(on_back=self.get_state_changer('main'))
-        self.dash_header = \
-            builtin_components.HeaderComponent(title_bar_component=header_component.title_bar_component,
-                                               nav_options_component=self.dash_nav_component,
-                                               message_bar_component=header_component.message_bar_component)
-        self.dash_header.configure(on_back=self.get_state_changer('main'))
-        self.dash_component = self.delegate_state('dash', cli.TodoDashComponent(header_component=self.dash_header))
+        self.dash_header_component = copy(header_component)
+        self.dash_header_component.nav_options_component = builtin_components.NavOptionsComponent(
+            on_back=self.get_state_changer('main'),
+            on_quit=todo_app.app.quit,
+            get_current_route=todo_app.app.get_current_route
+        )
+        self.dash_component = self.delegate_state('dash',
+                                                  cli.TodoDashComponent(header_component=self.dash_header_component))
         self.editor_component = todo_editor_component
         self._editor_route = editor_route
         self.page_component = self.use_component(
             builtin_components.StandardPageComponent(header_component=header_component,
                                                      page_title='Todo List')
         )
-
-        self.configure(responders=[
-            Responder(self._on_add_todo, args=[
-                ResponderArg(name='todo_text', accepts_value=True, markers=['-add', '-a']),
-                ResponderArg(name='today_flag', accepts_value=False, markers=['--today', '--t'], optional=True),
-                ResponderArg(name='importance_score', accepts_value=True, markers=['--importance', '--i'],
-                             validators=[validators.validate_integer, service.validate_importance_score],
-                             default_value=1, optional=True)
-            ]),
-            Responder(self._on_remove_todo, args=[
-                ResponderArg(name='todo_number', accepts_value=True, markers=['-remove', '-r'],
-                             validators=[self._validate_todo_num])
-            ]),
-            Responder(self._on_edit_todo, args=[
-                ResponderArg(name='todo_number', accepts_value=True, markers=['-edit', '-e'],
-                             validators=[self._validate_todo_num])
-            ]),
-            Responder(self._on_show_dash, args=None)
-        ])
+        self._validate()
 
     def on_load(self) -> None:
         self._todo_num_map = utils.make_numbered_map(service.todos)
@@ -118,3 +96,22 @@ class TodoMenuComponent(Component):
     def _on_show_dash(self) -> None:
         """Switches to dash view state."""
         self.current_state = 'dash'
+
+    responders = [
+        Responder(_on_add_todo, args=[
+            ResponderArg(name='todo_text', accepts_value=True, markers=['-add', '-a']),
+            ResponderArg(name='today_flag', accepts_value=False, markers=['--today', '--t'], optional=True),
+            ResponderArg(name='importance_score', accepts_value=True, markers=['--importance', '--i'],
+                         validators=[validators.validate_integer, service.validate_importance_score],
+                         default_value=1, optional=True)
+        ]),
+        Responder(_on_remove_todo, args=[
+            ResponderArg(name='todo_number', accepts_value=True, markers=['-remove', '-r'],
+                         validators=[_validate_todo_num])
+        ]),
+        Responder(_on_edit_todo, args=[
+            ResponderArg(name='todo_number', accepts_value=True, markers=['-edit', '-e'],
+                         validators=[_validate_todo_num])
+        ]),
+        Responder(_on_show_dash, args=None)
+    ]
